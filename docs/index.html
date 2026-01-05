@@ -31,37 +31,27 @@
 
     <main>
         <section id="gallery" class="container">
-            <div class="carousel-container">
-                <button class="carousel-prev">❮</button>
-                <div class="carousel-track-container">
-                    <ul class="carousel-track">
-                        <li class="carousel-slide current-slide">
-                            <div class="slide-bg" style="background-image: url('assets/screenshots/1.png')"></div>
-                            <img src="assets/screenshots/1.png" alt="Applyly Screenshot 1">
-                        </li>
-                        <li class="carousel-slide">
-                            <div class="slide-bg" style="background-image: url('assets/screenshots/2.png')"></div>
-                            <img src="assets/screenshots/2.png" alt="Applyly Screenshot 2">
-                        </li>
-                        <li class="carousel-slide">
-                            <div class="slide-bg" style="background-image: url('assets/screenshots/3.png')"></div>
-                            <img src="assets/screenshots/3.png" alt="Applyly Screenshot 3">
-                        </li>
-                        <li class="carousel-slide">
-                            <div class="slide-bg" style="background-image: url('assets/screenshots/4.png')"></div>
-                            <img src="assets/screenshots/4.png" alt="Applyly Screenshot 4">
-                        </li>
-                        <li class="carousel-slide">
-                            <div class="slide-bg" style="background-image: url('assets/screenshots/5.png')"></div>
-                            <img src="assets/screenshots/5.png" alt="Applyly Screenshot 5">
-                        </li>
-                    </ul>
+            <!-- Row 1: Wide Images -->
+            <div class="gallery-grid wide-grid">
+                <div class="gallery-item">
+                    <img src="assets/screenshots/2.png" alt="Applyly Dashboard">
                 </div>
-                <button class="carousel-next">❯</button>
+                <div class="gallery-item">
+                    <img src="assets/screenshots/3.png" alt="Applyly Editor">
+                </div>
             </div>
 
-            <div class="carousel-nav">
-                <!-- Dots will be populated by JS -->
+            <!-- Row 2: Tall Images -->
+            <div class="gallery-grid tall-grid">
+                <div class="gallery-item">
+                    <img src="assets/screenshots/1.png" alt="Empty State">
+                </div>
+                <div class="gallery-item">
+                    <img src="assets/screenshots/4.png" alt="Extension Popup">
+                </div>
+                <div class="gallery-item">
+                    <img src="assets/screenshots/5.png" alt="Manual Entry">
+                </div>
             </div>
         </section>
 
