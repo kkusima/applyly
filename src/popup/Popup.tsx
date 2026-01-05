@@ -53,13 +53,27 @@ export const Popup: React.FC = () => {
                 return;
             }
 
+            // Programmatically inject content script (ActiveTab permission)
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ['content.js']
+                });
+            } catch (err) {
+                console.warn('Script injection warning:', err);
+                // Continue anyway, it might be already there or we might be capable of messaging if it's a persistent case (unlikely with this architecture change)
+            }
+
             chrome.tabs.sendMessage(tab.id, {
                 type: 'FILL_FORM',
                 data: activeProfile.resume
             }, (response) => {
                 setIsFilling(false);
                 if (chrome.runtime.lastError) {
-                    setStatus('Could not connect to page');
+                    // This often happens if the page is restricted (e.g. chrome://)
+                    // or if the script failed to initialize.
+                    console.error('Message error:', chrome.runtime.lastError);
+                    setStatus('Cannot fill this page');
                     setStatusType('error');
                 } else if (response && response.count > 0) {
                     setStatus(`${response.count} field${response.count > 1 ? 's' : ''} filled!`);

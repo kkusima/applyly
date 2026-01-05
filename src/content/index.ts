@@ -1,12 +1,17 @@
 import { ResumeData } from '../utils/storage';
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (message.type === 'FILL_FORM') {
-        const count = fillForm(message.data);
-        sendResponse({ count });
-    }
-    return true;
-});
+// Prevent multiple injections
+if (!(window as any).hasApplylyListener) {
+    (window as any).hasApplylyListener = true;
+
+    chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+        if (message.type === 'FILL_FORM') {
+            const count = fillForm(message.data);
+            sendResponse({ count });
+        }
+        return true;
+    });
+}
 
 /**
  * Robust Form Filling Strategy:
