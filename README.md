@@ -16,12 +16,12 @@ Applying for roles often involves re-entering the same information across dozens
 
 ## Installation
 
-Applyly is currently available for manual installation in Chrome Developer Mode.
+## Installation
 
-1.  Clone this repository to your local machine.
-2.  Open Google Chrome and navigate to `chrome://extensions/`.
-3.  Enable **Developer mode** using the toggle in the top right corner.
-4.  Click **Load unpacked** and select the `dist` folder within the project directory.
+1.  Clone this repo: `git clone https://github.com/kkusima/applyly.git`
+2.  Go to `chrome://extensions/` in Chrome.
+3.  Enable **Developer mode** (top right).
+4.  Click **Load unpacked** and select the `dist/` folder in this project.
 
 ## Permissions
 
@@ -33,12 +33,6 @@ Applyly requires the following permissions to function:
 - `activeTab`: To access the current page's DOM when you initiate a fill.
 
 
-## Roadmap
-
-- Support for additional document types and parsing formats.
-- Enhanced matching algorithms for non-standard application forms.
-- Automated updates for community-sourced portal mappings.
-- Localization for multiple languages and regions.
 
 ## Trademark
 
