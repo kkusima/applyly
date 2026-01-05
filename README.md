@@ -17,12 +17,17 @@ Applyly securely stores your resume data locally and helps you ensure every appl
 
 ## Screenshots
 
+### Dashboard & Editor
 <p align="center">
-  <img src="public/Screenshots/OG/1.png" width="45%" alt="Screenshot 1"/>
-  <img src="public/Screenshots/OG/2.png" width="45%" alt="Screenshot 2"/>
-  <img src="public/Screenshots/OG/3.png" width="45%" alt="Screenshot 3"/>
-  <img src="public/Screenshots/OG/4.png" width="45%" alt="Screenshot 4"/>
-  <img src="public/Screenshots/OG/5.png" width="45%" alt="Screenshot 5"/>
+  <img src="public/Screenshots/OG/2.png" width="45%" alt="Dashboard"/>
+  <img src="public/Screenshots/OG/3.png" width="45%" alt="Editor"/>
+</p>
+
+### Flows & Popups
+<p align="center">
+  <img src="public/Screenshots/OG/1.png" width="30%" alt="Empty State"/>
+  <img src="public/Screenshots/OG/4.png" width="30%" alt="Popup"/>
+  <img src="public/Screenshots/OG/5.png" width="30%" alt="Manual Entry"/>
 </p>
 
 ## Installation
