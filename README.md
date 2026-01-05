@@ -32,16 +32,6 @@ Applyly requires the following permissions to function:
 - `scripting`: To inject the form-filling logic into application portals.
 - `activeTab`: To access the current page's DOM when you initiate a fill.
 
-## Screenshots
-
-![Extension Popup](assets/screenshots/popup.png)
-*The Applyly popup interface for profile selection and manual entry.*
-
-![Manual Entry View](assets/screenshots/manual_entry.png)
-*Detailed manual entry helper for granular data copying.*
-
-![Settings Overview](assets/screenshots/settings.png)
-*The settings and profile management interface.*
 
 ## Roadmap
 
