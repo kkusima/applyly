@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Applyly™ — The Intelligent Job Application Assistant</title>
+    <title>Applyly™ — Intelligent Job Application Assistant</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="assets/icon128.png">
 </head>
@@ -16,80 +16,71 @@
                 <img src="assets/icon128.png" alt="Applyly Logo" class="logo">
             </div>
             <h1>Applyly™</h1>
-            <p class="tagline">The intelligent, privacy-first companion that streamlines your job application journey.
-            </p>
+            <p class="tagline">Local-first browser extension for automated form filling.</p>
+            <div style="margin-top: 32px; display: flex; gap: 16px; justify-content: center;">
+                <a href="https://github.com/kkusima/applyly/archive/refs/heads/main.zip" class="btn-primary"
+                    style="background: var(--accent); color: white; padding: 12px 24px; border-radius: 99px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 12px rgba(255, 140, 66, 0.4); transition: transform 0.2s;">Download
+                    Source</a>
+                <a href="https://github.com/kkusima/applyly" class="btn-secondary"
+                    style="background: white; color: var(--text-primary); padding: 12px 24px; border-radius: 99px; text-decoration: none; font-weight: 600; border: 1px solid var(--border); transition: transform 0.2s;">View
+                    on GitHub</a>
+            </div>
         </div>
     </header>
 
     <main>
         <section id="features" class="container">
-            <h2>Experience Seamless Precision</h2>
             <div class="grid">
                 <div class="card">
-                    <h3>Intelligent Parsing</h3>
-                    <p>Harness advanced extraction logic to transform your PDF and DOCX resumes into a structured,
-                        searchable data engine. Every detail—from GPA to complex project bullet points—is mapped with
-                        surgical precision.</p>
+                    <h3>Resume Parsing</h3>
+                    <p>Extracts data from PDF/DOCX resumes into specific fields (Education, Work, Skills) for easy
+                        access.</p>
                 </div>
                 <div class="card">
                     <h3>Smart Autofill</h3>
-                    <p>Bypass common form-filling roadblocks. Our engine intelligently identifies fields even within
-                        complex iframes and Shadow DOM environments, ensuring a smooth one-click experience on LinkedIn,
-                        Greenhouse, and Lever.</p>
+                    <p>Detects and fills application forms on major portals (LinkedIn, Greenhouse, Lever), including
+                        iframes.</p>
                 </div>
                 <div class="card">
-                    <h3>Manual Entry Helper</h3>
-                    <p>For forms requiring a manual touch, our systematic sidekick organizes your data into clean,
-                        copyable categories. Access granular date components and specific field values instantly without
-                        switching tabs.</p>
+                    <h3>Manual Entry</h3>
+                    <p>Provides a sidebar with categorized, clickable data for fields that require manual input.</p>
                 </div>
                 <div class="card">
-                    <h3>Privacy First</h3>
-                    <p>Your career data is sensitive and stays that way. Applyly operates with a local-only
-                        architecture—your profiles and personal information never leave your device, ensuring total
-                        control and security.</p>
-                </div>
-                <div class="card">
-                    <h3>Profile Management</h3>
-                    <p>Tailor your presence for every opportunity. Create and manage multiple application profiles to
-                        switch between different resume versions seamlessly, matching the right skills to the right
-                        role.</p>
-                </div>
-                <div class="card">
-                    <h3>MIT Open Source</h3>
-                    <p>Transparent, community-driven, and permanently free. Built by engineers for engineers, Applyly is
-                        a public project dedicated to removing the friction from professional growth.</p>
+                    <h3>Local Storage</h3>
+                    <p>All data is stored locally in your browser. No external servers, no data collection.</p>
                 </div>
             </div>
         </section>
 
         <section id="installation" class="container">
-            <h2>Getting Started</h2>
+            <h2>Installation</h2>
             <div class="steps">
                 <ol>
-                    <li>Clone the repository from <a href="https://github.com/kkusima/applyly"
-                            style="color: var(--accent); text-decoration: none; font-weight: 600;">GitHub</a>.</li>
-                    <li>Open Chrome and navigate to <code>chrome://extensions/</code> in your browser.</li>
-                    <li>Enable **Developer mode** using the toggle in the top right corner.</li>
-                    <li>Click **Load unpacked** and select the <code>dist</code> directory within your project folder.
+                    <li>
+                        <strong>Download</strong> the source code:
+                        <br>Option A: <a href="https://github.com/kkusima/applyly/archive/refs/heads/main.zip"
+                            style="color: var(--accent); font-weight: 600;">Download ZIP</a> and extract it.
+                        <br>Option B: Clone via terminal: <code>git clone https://github.com/kkusima/applyly.git</code>
                     </li>
+                    <li>Open Chrome and go to <code>chrome://extensions/</code>.</li>
+                    <li>Toggle <strong>Developer mode</strong> (top right corner).</li>
+                    <li>Click <strong>Load unpacked</strong>.</li>
+                    <li>Select the <code>dist</code> folder located inside the downloaded project directory.</li>
                 </ol>
             </div>
         </section>
 
         <section id="open-source" class="container">
-            <h2>Built for the Community</h2>
-            <p>Applyly™ is a trademark of the project creator. We believe in high-quality software that respects user
-                privacy and eliminates repetitive tasks through smart automation.</p>
+            <p style="margin-bottom: 16px; font-weight: 500;">Applyly™ is open source software.</p>
             <div class="legal">
-                <p>Licensed under the MIT License. Source code available on GitHub.</p>
+                <p>Licensed under MIT. Trademark belongs to project creator.</p>
             </div>
         </section>
     </main>
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 Applyly™. All rights reserved.</p>
+            <p>&copy; 2026 Applyly™</p>
         </div>
     </footer>
 </body>
