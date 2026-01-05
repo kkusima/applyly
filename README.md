@@ -54,4 +54,4 @@ Applyly securely stores your resume data locally and helps you ensure every appl
 
 ## License
 
-MIT License. Applyly™ is a trademark of the project creator.
+MIT License. Applyly™ © 2026 [Kenneth Kusima](http://tinyurl.com/kennethkusima). All rights reserved.
