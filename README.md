@@ -4,7 +4,7 @@
 
 # Applyly™
 
-**Local-first browser extension for automated form filling.**
+**Free Open-Source Chrome Extension for automated form filling.**
 
 Applyly securely stores your resume data locally and helps you autofill job applications on various portals (LinkedIn, Greenhouse, Lever). It supports parsing PDF/DOCX resumes and handles complex forms including iframes.
 
