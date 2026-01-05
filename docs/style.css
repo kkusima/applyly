@@ -265,3 +265,208 @@ footer {
         padding: 32px;
     }
 }
+/* Carousel Section */
+.carousel-container {
+    position: relative;
+    max-width: 900px;
+    margin: 0 auto;
+    aspect-ratio: 1.6;
+    margin-bottom: 2rem;
+}
+
+.carousel-track-container {
+    overflow: hidden;
+    height: 100%;
+    border-radius: 20px;
+    box-shadow: var(--shadow-glossy);
+    border: 1px solid var(--glass-border);
+    position: relative;
+    background: var(--bg-card); /* Fallback */
+}
+
+.carousel-track {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.carousel-slide {
+    min-width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures full bleeding */
+    cursor: zoom-in;
+    transition: transform 0.3s;
+}
+
+.carousel-slide:hover img {
+    /* transform: scale(1.02); Subtle zoom effect on hover */
+}
+
+/* Navigation Buttons */
+.carousel-prev, .carousel-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid white;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: 24px;
+    color: var(--accent);
+    cursor: pointer;
+    z-index: 10;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+}
+
+.carousel-prev:hover, .carousel-next:hover {
+    background: white;
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 12px 32px rgba(255, 140, 66, 0.25);
+}
+
+.carousel-prev { left: -80px; }
+.carousel-next { right: -80px; }
+
+.is-hidden { 
+    opacity: 0; 
+    pointer-events: none; 
+}
+
+/* Indicators */
+.carousel-nav {
+    display: flex;
+    justify-content: center;
+    padding: 24px 0;
+    gap: 12px;
+}
+
+.carousel-indicator {
+    border: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.carousel-indicator:hover {
+    background: var(--accent-light);
+    transform: scale(1.2);
+}
+
+.carousel-indicator.current-slide {
+    background: var(--accent);
+    transform: scale(1.4);
+    box-shadow: 0 2px 8px rgba(255, 140, 66, 0.4);
+}
+
+/* Lightbox */
+.lightbox {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.lightbox.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.lightbox-content {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.lightbox.active .lightbox-content {
+    transform: scale(1);
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    color: white;
+    font-size: 40px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: transform 0.2s;
+    line-height: 1;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+}
+
+.lightbox-close:hover {
+    background: rgba(255,255,255,0.2);
+    transform: rotate(90deg);
+}
+
+/* Media Queries */
+@media (max-width: 1100px) {
+    .carousel-prev { left: 24px; }
+    .carousel-next { right: 24px; }
+}
+
+@media (max-width: 768px) {
+    .carousel-container {
+        aspect-ratio: 1.5; /* Slightly taller on mobile? Or stick to 1.6 */
+    }
+    
+    .carousel-prev, .carousel-next {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+        background: rgba(255, 255, 255, 0.9);
+    }
+    
+    .carousel-prev { left: 16px; }
+    .carousel-next { right: 16px; }
+    
+    .lightbox-close {
+        top: 20px;
+        right: 20px;
+        width: 40px;
+        height: 40px;
+        font-size: 32px;
+    }
+}

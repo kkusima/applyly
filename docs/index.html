@@ -30,6 +30,33 @@
     </header>
 
     <main>
+        <section id="gallery" class="container">
+            <div class="carousel-container">
+                <button class="carousel-prev">❮</button>
+                <div class="carousel-track-container">
+                    <ul class="carousel-track">
+                        <li class="carousel-slide current-slide"><img src="assets/screenshots/1.png"
+                                alt="Applyly Screenshot 1"></li>
+                        <li class="carousel-slide"><img src="assets/screenshots/2.png" alt="Applyly Screenshot 2"></li>
+                        <li class="carousel-slide"><img src="assets/screenshots/3.png" alt="Applyly Screenshot 3"></li>
+                        <li class="carousel-slide"><img src="assets/screenshots/4.png" alt="Applyly Screenshot 4"></li>
+                        <li class="carousel-slide"><img src="assets/screenshots/5.png" alt="Applyly Screenshot 5"></li>
+                    </ul>
+                </div>
+                <button class="carousel-next">❯</button>
+            </div>
+
+            <div class="carousel-nav">
+                <!-- Dots will be populated by JS -->
+            </div>
+        </section>
+
+        <!-- Lightbox -->
+        <div id="lightbox" class="lightbox">
+            <span class="lightbox-close">&times;</span>
+            <img class="lightbox-content" id="lightbox-img">
+        </div>
+
         <section id="features" class="container">
             <div class="grid">
                 <div class="card">
@@ -85,6 +112,7 @@
             <p>&copy; 2026 Applyly™</p>
         </div>
     </footer>
+    <script src="script.js"></script>
 </body>
 
 </html>
