@@ -32,19 +32,7 @@ Applyly securely stores your resume data locally and helps you ensure every appl
 
 ## Installation
 
-### Option A: Download ZIP (Recommended)
-1.  **[Download Source ZIP](https://github.com/kkusima/applyly/archive/refs/heads/main.zip)** and extract it.
-2.  Open Chrome to `chrome://extensions/`.
-3.  Enable **Developer mode** (toggle in top right).
-4.  Click **Load unpacked**.
-5.  Select the `dist` folder inside the extracted directory.
-
-### Option B: Clone via Git
-1.  Clone the repo:
-    ```bash
-    git clone https://github.com/kkusima/applyly.git
-    ```
-2.  Follow steps 2-5 above, selecting the `dist` folder in the project root.
+Go to the **[Chrome Web Store](https://chromewebstore.google.com/detail/applyly/jfhblglahmaichgdjaehlgdgocibbmnb)** and click **Add to Chrome**.
 
 ## Permissions
 

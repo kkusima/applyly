@@ -102,6 +102,53 @@ h1 {
     z-index: 1;
 }
 
+.btn-primary,
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 36px;
+    border-radius: 99px;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 16px;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 10px 20px rgba(255, 140, 66, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(255, 140, 66, 0.4);
+    background: var(--accent-dark);
+}
+
+.btn-primary:active {
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: var(--accent);
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
 main {
     padding: 80px 0;
 }
@@ -164,49 +211,6 @@ h2 {
     font-size: 15px;
 }
 
-/* Installation Steps - Glass List */
-.steps {
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--glass-border);
-    border-radius: 24px;
-    padding: 48px;
-    margin-bottom: 80px;
-    box-shadow: var(--shadow-soft);
-}
-
-.steps ol {
-    list-style: none;
-    counter-reset: step-counter;
-}
-
-.steps li {
-    counter-increment: step-counter;
-    margin-bottom: 24px;
-    padding-left: 48px;
-    position: relative;
-    font-size: 16px;
-}
-
-.steps li::before {
-    content: counter(step-counter);
-    position: absolute;
-    left: 0;
-    top: -2px;
-    width: 32px;
-    height: 32px;
-    background: var(--accent);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
-    box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
-}
-
 code {
     background: rgba(0, 0, 0, 0.05);
     padding: 2px 6px;
@@ -265,6 +269,7 @@ footer {
         padding: 32px;
     }
 }
+
 /* Dynamic Grid Gallery */
 .gallery-grid {
     display: grid;
@@ -287,7 +292,8 @@ footer {
     border: 1px solid var(--glass-border);
     border-radius: 20px;
     overflow: hidden;
-    position: relative; /* For hover effect stacking */
+    position: relative;
+    /* For hover effect stacking */
     box-shadow: var(--shadow-soft);
     transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     cursor: zoom-in;
@@ -316,9 +322,11 @@ footer {
 /* Lightbox */
 .lightbox {
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.85);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
     z-index: 2000;
     display: flex;
     justify-content: center;
@@ -339,7 +347,7 @@ footer {
     max-width: 90vw;
     max-height: 90vh;
     border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     transform: scale(0.95);
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -363,12 +371,12 @@ footer {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
 }
 
 .lightbox-close:hover {
-    background: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.2);
     transform: rotate(90deg);
 }
 
@@ -380,10 +388,12 @@ footer {
 }
 
 @media (max-width: 768px) {
-    .wide-grid, .tall-grid {
+
+    .wide-grid,
+    .tall-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .lightbox-close {
         top: 20px;
         right: 20px;
@@ -391,7 +401,7 @@ footer {
         height: 40px;
         font-size: 32px;
     }
-    
+
     .gallery-item:hover {
         /* Tone down effect on mobile */
         transform: translateY(-2px);
