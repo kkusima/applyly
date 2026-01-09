@@ -164,9 +164,37 @@ h2 {
 /* Feature Grid with Glossy Cards */
 .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 32px;
     margin-bottom: 80px;
+}
+
+/* Center last row when there are 5 items (3 + 2) */
+.grid .card:nth-child(4) {
+    grid-column: 1 / 2;
+}
+
+.grid .card:nth-child(5) {
+    grid-column: 2 / 3;
+}
+
+/* For exactly 5 items, center the last 2 */
+.grid:has(.card:nth-child(5):last-child) {
+    grid-template-columns: repeat(6, 1fr);
+}
+
+.grid:has(.card:nth-child(5):last-child) .card:nth-child(1),
+.grid:has(.card:nth-child(5):last-child) .card:nth-child(2),
+.grid:has(.card:nth-child(5):last-child) .card:nth-child(3) {
+    grid-column: span 2;
+}
+
+.grid:has(.card:nth-child(5):last-child) .card:nth-child(4) {
+    grid-column: 2 / 4;
+}
+
+.grid:has(.card:nth-child(5):last-child) .card:nth-child(5) {
+    grid-column: 4 / 6;
 }
 
 .card {
@@ -252,6 +280,19 @@ footer {
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+
+    .grid,
+    .grid:has(.card:nth-child(5):last-child) {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .grid .card,
+    .grid:has(.card:nth-child(5):last-child) .card {
+        grid-column: span 1 !important;
+    }
+}
+
 @media (max-width: 768px) {
     h1 {
         font-size: 40px;
@@ -267,6 +308,16 @@ footer {
 
     .card {
         padding: 32px;
+    }
+
+    .grid,
+    .grid:has(.card:nth-child(5):last-child) {
+        grid-template-columns: 1fr !important;
+    }
+
+    .grid .card,
+    .grid:has(.card:nth-child(5):last-child) .card {
+        grid-column: span 1 !important;
     }
 }
 
