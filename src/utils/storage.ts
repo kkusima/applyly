@@ -130,8 +130,21 @@ export interface Profile {
     updatedAt: number;
 }
 
+export interface SavedCoverLetter {
+    id: string;
+    title: string;
+    content: string;
+    jobDescription: string;
+    jobTitle: string;
+    companyName: string;
+    profileId: string | null;
+    createdAt: number;
+    updatedAt: number;
+}
+
 const STORAGE_KEY = 'applyly_profiles';
 const ACTIVE_PROFILE_KEY = 'applyly_active_profile_id';
+const COVER_LETTERS_KEY = 'applyly_cover_letters';
 
 export const storage = {
     async getProfiles(): Promise<Profile[]> {
@@ -165,6 +178,15 @@ export const storage = {
             profiles[index] = { ...updatedProfile, updatedAt: Date.now() };
             await this.saveProfiles(profiles);
         }
+    },
+
+    async getCoverLetters(): Promise<SavedCoverLetter[]> {
+        const result = await chrome.storage.local.get(COVER_LETTERS_KEY);
+        return result[COVER_LETTERS_KEY] || [];
+    },
+
+    async saveCoverLetters(letters: SavedCoverLetter[]): Promise<void> {
+        await chrome.storage.local.set({ [COVER_LETTERS_KEY]: letters });
     }
 };
 

@@ -352,22 +352,26 @@ function extractPersonalInfo(headerLines: string[], fullText: string): PersonalI
 function parseMonthYear(str: string): { month: string; year: string } {
     const s = str.toLowerCase().trim();
 
-    if (['present', 'current', 'now', 'ongoing'].includes(s)) {
+    // Handle present/current indicators
+    if (['present', 'current', 'now', 'ongoing', 'today'].includes(s) || /^(p|c|now)\.?$/.test(s)) {
         return { month: '', year: 'Present' };
     }
 
     let month = '', year = '';
 
+    // Try matching month names first (full and abbreviated)
     for (let i = 0; i < 12; i++) {
         const full = MONTHS[i].toLowerCase();
         const abbr = full.slice(0, 3);
-        if (s.includes(full) || s.includes(abbr)) {
+        const abbr2 = full.slice(0, 2);
+        if (s.includes(full) || s.includes(abbr) || (abbr2.length >= 2 && s.includes(abbr2))) {
             month = MONTHS[i];
             break;
         }
     }
 
-    const yearMatch = str.match(/\b\d{4}\b/);
+    // Try to find 4-digit year
+    let yearMatch = str.match(/\b(19|20)\d{2}\b/);
     if (yearMatch) {
         const y = parseInt(yearMatch[0]);
         if (y >= MIN_YEAR && y <= MAX_YEAR) {
@@ -375,6 +379,7 @@ function parseMonthYear(str: string): { month: string; year: string } {
         }
     }
 
+    // Try MM/YYYY format
     const mmyyyyMatch = str.match(/(\d{1,2})\/(\d{4})/);
     if (mmyyyyMatch) {
         const monthNum = parseInt(mmyyyyMatch[1]) - 1;
@@ -387,28 +392,55 @@ function parseMonthYear(str: string): { month: string; year: string } {
         }
     }
 
+    // Try YYYY-MM format
+    const yyyymmMatch = str.match(/(\d{4})-(\d{1,2})/);
+    if (yyyymmMatch && !year) {
+        const y = parseInt(yyyymmMatch[1]);
+        if (y >= MIN_YEAR && y <= MAX_YEAR) {
+            year = yyyymmMatch[1];
+        }
+        const monthNum = parseInt(yyyymmMatch[2]) - 1;
+        if (monthNum >= 0 && monthNum < 12) {
+            month = MONTHS[monthNum];
+        }
+    }
+
+    // Infer month from season if present
+    if (!month && s.includes('spring')) month = MONTHS[2]; // March
+    if (!month && s.includes('summer')) month = MONTHS[5]; // June
+    if (!month && s.includes('fall')) month = MONTHS[8]; // September
+    if (!month && s.includes('autumn')) month = MONTHS[8]; // September
+    if (!month && s.includes('winter')) month = MONTHS[11]; // December
+
     return { month, year };
 }
 
 function extractDateRange(text: string): DateRange {
+    // Enhanced range patterns with more flexibility
     const rangePatterns = [
-        /(\w+\.?\s*\d{4})\s*[-–—to]+\s*(\w+\.?\s*\d{4}|present|current|ongoing)/gi,
-        /(\d{1,2}\/\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|present|current)/gi,
-        /(\d{4})\s*[-–—to]+\s*(\d{4}|present|current)/gi,
+        // Month Year - Month Year (e.g., "Jan 2020 - Dec 2021")
+        /(\w+\.?\s*\d{4})\s*[-–—to]+\s*(\w+\.?\s*\d{4}|present|current|ongoing|today)/gi,
+        // MM/YYYY - MM/YYYY format
+        /(\d{1,2}\/\d{4})\s*[-–—to]+\s*(\d{1,2}\/\d{4}|present|current|today)/gi,
+        // YYYY - YYYY format (year ranges)
+        /\b(\d{4})\s*[-–—to]+\s*(\d{4}|present|current|today)\b/gi,
+        // YYYY-MM - YYYY-MM format
+        /(\d{4})-(\d{1,2})\s*[-–—to]+\s*(\d{4})-(\d{1,2}|present|current)/gi,
     ];
 
     for (const pattern of rangePatterns) {
         const match = text.match(pattern);
         if (match) {
-            const parts = match[0].split(/[-–—]|to/i).map(p => p.trim());
-            if (parts.length >= 2) {
-                const start = parseMonthYear(parts[0]);
-                const end = parseMonthYear(parts[1]);
+            const rangeParts = match[0].split(/[-–—]|to/i).map(p => p.trim());
+            if (rangeParts.length >= 2) {
+                const start = parseMonthYear(rangeParts[0]);
+                const end = parseMonthYear(rangeParts[1]);
                 return { startMonth: start.month, startYear: start.year, endMonth: end.month, endYear: end.year };
             }
         }
     }
 
+    // Fallback: look for any 4-digit year as a single date
     const yearMatch = text.match(/\b(19|20)\d{2}\b/);
     if (yearMatch) {
         return { startMonth: '', startYear: '', endMonth: '', endYear: yearMatch[0] };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { storage, Profile } from '../utils/storage';
-import { Sparkles, Settings, User, Check, Copy, ChevronLeft, ChevronDown, Briefcase, GraduationCap, Award, BookOpen } from 'lucide-react';
+import { Sparkles, Settings, User, Check, Copy, ChevronLeft, ChevronDown, Briefcase, GraduationCap, Award, BookOpen, FileText } from 'lucide-react';
 
 export const Popup: React.FC = () => {
     const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -13,6 +13,10 @@ export const Popup: React.FC = () => {
     const [activeCategory, setActiveCategory] = useState<string>('');
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
     const [copiedField, setCopiedField] = useState<string | null>(null);
+
+    const openDashboard = () => {
+        chrome.runtime.openOptionsPage();
+    };
 
     useEffect(() => {
         loadData();
@@ -97,10 +101,6 @@ export const Popup: React.FC = () => {
         navigator.clipboard.writeText(text);
         setCopiedField(fieldId);
         setTimeout(() => setCopiedField(null), 1500);
-    };
-
-    const openDashboard = () => {
-        chrome.runtime.openOptionsPage();
     };
 
     if (isLoading) {
@@ -532,7 +532,8 @@ export const Popup: React.FC = () => {
                             borderRadius: 12,
                             boxShadow: '0 4px 12px rgba(255, 140, 66, 0.25)',
                             display: 'flex',
-                            gap: 10
+                            gap: 10,
+                            marginBottom: 12
                         }}
                     >
                         {isFilling ? (
@@ -543,6 +544,41 @@ export const Popup: React.FC = () => {
                                 Fill Form
                             </>
                         )}
+                    </button>
+
+                    {/* Cover Letter Button */}
+                    <button
+                        onClick={openDashboard}
+                        className="btn-ghost"
+                        style={{
+                            width: '100%',
+                            height: 44,
+                            fontSize: 14,
+                            fontWeight: 600,
+                            borderRadius: 12,
+                            display: 'flex',
+                            gap: 8,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1.5px solid var(--border)',
+                            background: 'white',
+                            color: 'var(--accent)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            const el = e.currentTarget as HTMLButtonElement;
+                            el.style.background = 'var(--bg-app)';
+                            el.style.borderColor = 'var(--accent)';
+                        }}
+                        onMouseLeave={(e) => {
+                            const el = e.currentTarget as HTMLButtonElement;
+                            el.style.background = 'white';
+                            el.style.borderColor = 'var(--border)';
+                        }}
+                    >
+                        <FileText size={16} />
+                        Generate Cover Letter
                     </button>
 
                     {/* Status */}

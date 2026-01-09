@@ -3,6 +3,7 @@ import {
     storage,
     Profile,
     ResumeData,
+    SavedCoverLetter,
     WorkExperience,
     Education,
     LeadershipExperience,
@@ -18,11 +19,13 @@ import {
     MAX_YEAR
 } from '../utils/storage';
 import { parseResume } from '../utils/parser';
+import { fetchJobDescriptionFromUrl } from '../utils/coverLetterGenerator';
+import { generateSmartCoverLetter, LetterLength } from '../utils/smartGenerator';
 import {
     Trash2, Copy, Check, Upload, Briefcase, User, FileText, MapPin,
-    GraduationCap, Sparkles, Mail, Phone, Linkedin, Globe, Save,
+    GraduationCap, Sparkles, Mail, Phone, Linkedin, Globe, PenSquare,
     ChevronDown, ChevronRight, Award as AwardIcon, BookOpen, DollarSign,
-    Presentation, Users, Edit3, X, Plus, Github, Lightbulb
+    Presentation, Users, Edit3, X, Plus, Github, Lightbulb, Loader
 } from 'lucide-react';
 
 // ============================================================
@@ -41,14 +44,68 @@ export const Options: React.FC = () => {
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [coverLetterSource, setCoverLetterSource] = useState<'profile' | 'upload'>('profile');
+    const [customCoverLetterResume, setCustomCoverLetterResume] = useState<ResumeData | null>(null);
+    const [customResumeName, setCustomResumeName] = useState('');
+    const [coverLetterDescription, setCoverLetterDescription] = useState('');
+    const [coverLetterUrl, setCoverLetterUrl] = useState('');
+    const [coverLetterResult, setCoverLetterResult] = useState('');
+    const [coverLetterGenerating, setCoverLetterGenerating] = useState(false);
+    const [coverLetterFetching, setCoverLetterFetching] = useState(false);
+    const [coverLetterParsing, setCoverLetterParsing] = useState(false);
+    const [coverLetterError, setCoverLetterError] = useState('');
+    const [coverLetterCopied, setCoverLetterCopied] = useState(false);
+    const [coverLetterInputMode, setCoverLetterInputMode] = useState<'text' | 'url'>('text');
+    const coverLetterFileRef = useRef<HTMLInputElement>(null);
+    const coverLetterPanelRef = useRef<HTMLDivElement>(null);
+    const [selectedCoverLetterProfileId, setSelectedCoverLetterProfileId] = useState<string | null>(null);
+    const [savedCoverLetters, setSavedCoverLetters] = useState<SavedCoverLetter[]>([]);
+    const [coverLetterTitle, setCoverLetterTitle] = useState('');
+    const [sidebarTab, setSidebarTab] = useState<'profiles' | 'coverLetters'>('profiles');
+    const [isEditingCoverLetter, setIsEditingCoverLetter] = useState(false);
+    const [editableCoverLetter, setEditableCoverLetter] = useState('');
+    const [letterSelectMode, setLetterSelectMode] = useState(false);
+    const [selectedLetterIds, setSelectedLetterIds] = useState<Set<string>>(new Set());
+    const [letterCopyStatus, setLetterCopyStatus] = useState<Record<string, boolean>>({});
+    const [detectedJobInfo, setDetectedJobInfo] = useState<{ company: string; title: string } | null>(null);
+    const [coverLetterLength, setCoverLetterLength] = useState<LetterLength>('medium');
 
     useEffect(() => { loadData(); }, []);
+
+    const refreshSavedLetters = async () => {
+        const letters = await storage.getCoverLetters();
+        setSavedCoverLetters(letters);
+    };
+
+    useEffect(() => {
+        if (activeProfile) {
+            setSelectedCoverLetterProfileId(activeProfile.id);
+        } else {
+            setSelectedCoverLetterProfileId(null);
+        }
+    }, [activeProfile]);
 
     const loadData = async () => {
         const list = await storage.getProfiles();
         const activeId = await storage.getActiveProfileId();
         setProfiles(list);
         setActiveProfile(activeId ? list.find(p => p.id === activeId) || list[0] || null : list[0] || null);
+        await refreshSavedLetters();
+    };
+
+    const createProfileFromResume = async (resumeData: ResumeData, baseName: string): Promise<Profile> => {
+        const newProfile: Profile = {
+            id: crypto.randomUUID(),
+            name: baseName,
+            description: 'Imported resume',
+            resume: resumeData,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+        const updated = [...profiles, newProfile];
+        await storage.saveProfiles(updated);
+        setProfiles(updated);
+        return newProfile;
     };
 
     const handleProcessFile = async (file: File) => {
@@ -56,18 +113,8 @@ export const Options: React.FC = () => {
         setIsUploading(true);
         try {
             const resumeData = await parseResume(file);
-            const newProfile: Profile = {
-                id: crypto.randomUUID(),
-                name: file.name.replace(/\.[^/.]+$/, ""),
-                description: '',
-                resume: resumeData,
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-            };
-            const updated = [...profiles, newProfile];
-            await storage.saveProfiles(updated);
+            const newProfile = await createProfileFromResume(resumeData, file.name.replace(/\.[^/.]+$/, ""));
             await storage.setActiveProfileId(newProfile.id);
-            setProfiles(updated);
             setActiveProfile(newProfile);
         } catch (err) {
             alert('Failed to parse: ' + (err as Error).message);
@@ -197,6 +244,316 @@ export const Options: React.FC = () => {
         updateProfile({ resume: { ...activeProfile.resume, ...updates } });
     };
 
+    const scrollToCoverLetterPanel = () => {
+        coverLetterPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const handleCoverLetterUpload = async (file?: File) => {
+        if (!file) return;
+        setCoverLetterParsing(true);
+        setCoverLetterError('');
+        try {
+            const parsed = await parseResume(file);
+            setCustomCoverLetterResume(parsed);
+            setCustomResumeName(file.name.replace(/\.[^/.]+$/, ''));
+            setCoverLetterSource('upload');
+            const uploadedProfile = await createProfileFromResume(parsed, `${file.name.replace(/\.[^/.]+$/, '')} (Cover Letter)`);
+            setSelectedCoverLetterProfileId(uploadedProfile.id);
+        } catch (err) {
+            setCoverLetterError('Failed to parse resume: ' + (err as Error).message);
+        } finally {
+            setCoverLetterParsing(false);
+        }
+    };
+
+    const onCoverLetterFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        handleCoverLetterUpload(e.target.files?.[0]);
+        e.target.value = '';
+    };
+
+    const handleCoverLetterFetchFromUrl = async () => {
+        if (!coverLetterUrl.trim()) {
+            setCoverLetterError('Please enter a valid URL');
+            return;
+        }
+        setCoverLetterError('');
+        setCoverLetterFetching(true);
+        try {
+            const content = await fetchJobDescriptionFromUrl(coverLetterUrl.trim());
+            setCoverLetterDescription(content);
+            setCoverLetterInputMode('text');
+            setCoverLetterResult('');
+        } catch (err) {
+            setCoverLetterError((err as Error).message || 'Failed to fetch job description');
+        } finally {
+            setCoverLetterFetching(false);
+        }
+    };
+
+    const getDisplayedCoverLetterText = () => isEditingCoverLetter ? editableCoverLetter : coverLetterResult;
+
+    const handleClearCoverLetterLab = () => {
+        setCoverLetterDescription('');
+        setCoverLetterUrl('');
+        setCoverLetterResult('');
+        setCustomCoverLetterResume(null);
+        setCustomResumeName('');
+        setCoverLetterSource('profile');
+        setCoverLetterError('');
+        setCoverLetterCopied(false);
+        setIsEditingCoverLetter(false);
+        setEditableCoverLetter('');
+        setCoverLetterTitle('');
+        if (activeProfile) setSelectedCoverLetterProfileId(activeProfile.id);
+    };
+
+    const handleEditCoverLetter = () => {
+        if (!coverLetterResult) return;
+        setEditableCoverLetter(getDisplayedCoverLetterText());
+        setIsEditingCoverLetter(true);
+    };
+
+    const applyEditedCoverLetter = () => {
+        setCoverLetterResult(editableCoverLetter);
+        setIsEditingCoverLetter(false);
+        setCoverLetterCopied(false);
+    };
+
+    const handleSaveCoverLetter = async () => {
+        const displayText = getDisplayedCoverLetterText().trim();
+        if (!displayText) {
+            setCoverLetterError('Generate a letter before saving it.');
+            return;
+        }
+        const { companyName, jobTitle } = detectCompanyAndTitle(coverLetterDescription);
+        const profileId = selectedCoverLetterProfileId;
+        const title = coverLetterTitle.trim() || `${coverLetterProfile?.name || 'Cover Letter'} • ${companyName}`;
+        const newLetter: SavedCoverLetter = {
+            id: crypto.randomUUID(),
+            title,
+            content: displayText,
+            jobDescription: coverLetterDescription,
+            jobTitle,
+            companyName,
+            profileId,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+        const updated = [newLetter, ...savedCoverLetters];
+        await storage.saveCoverLetters(updated);
+        setSavedCoverLetters(updated);
+        setCoverLetterTitle('');
+    };
+
+    const handleLoadSavedCoverLetter = (letter: SavedCoverLetter) => {
+        setCoverLetterDescription(letter.jobDescription);
+        setCoverLetterResult(letter.content);
+        setEditableCoverLetter(letter.content);
+        setIsEditingCoverLetter(false);
+        setCoverLetterTitle(letter.title);
+        setCoverLetterSource('profile');
+        setCoverLetterError('');
+        if (letter.profileId) {
+            setSelectedCoverLetterProfileId(letter.profileId);
+        }
+    };
+
+    const toggleLetterSelect = (id: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setSelectedLetterIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const selectAllLetters = () => {
+        if (selectedLetterIds.size === savedCoverLetters.length) {
+            setSelectedLetterIds(new Set());
+        } else {
+            setSelectedLetterIds(new Set(savedCoverLetters.map(l => l.id)));
+        }
+    };
+
+    const deleteSelectedLetters = async () => {
+        if (selectedLetterIds.size === 0) return;
+        if (!confirm(`Delete ${selectedLetterIds.size} cover letter(s)?`)) return;
+        const remaining = savedCoverLetters.filter(l => !selectedLetterIds.has(l.id));
+        await storage.saveCoverLetters(remaining);
+        setSavedCoverLetters(remaining);
+        setSelectedLetterIds(new Set());
+        setLetterSelectMode(false);
+    };
+
+    const copySelectedLetters = async () => {
+        if (selectedLetterIds.size === 0) return;
+        const selected = savedCoverLetters.filter(l => selectedLetterIds.has(l.id));
+        const text = selected.map(l => `--- ${l.title} ---\n\n${l.content}`).join('\n\n\n');
+        await navigator.clipboard.writeText(text);
+        selected.forEach(l => setLetterCopyStatus(prev => ({ ...prev, [l.id]: true })));
+        setTimeout(() => setLetterCopyStatus({}), 2000);
+    };
+
+    const copySingleLetter = async (letter: SavedCoverLetter, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        await navigator.clipboard.writeText(letter.content);
+        setLetterCopyStatus(prev => ({ ...prev, [letter.id]: true }));
+        setTimeout(() => setLetterCopyStatus(prev => ({ ...prev, [letter.id]: false })), 2000);
+    };
+
+    const deleteSingleLetter = async (id: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        if (!confirm('Delete this cover letter?')) return;
+        const remaining = savedCoverLetters.filter(l => l.id !== id);
+        await storage.saveCoverLetters(remaining);
+        setSavedCoverLetters(remaining);
+    };
+
+    const detectCompanyAndTitle = (text: string) => {
+        let companyName = '';
+        let jobTitle = '';
+        
+        // Common job title patterns
+        const titlePatterns = [
+            /(?:^|\n)\s*(?:job\s*title|role|position)\s*[:\-]\s*([^\n]{5,60})/i,
+            /(?:^|\n)\s*(?:the\s+role)\s*[:\-]?\s*([^\n]{5,60})/i,
+            /looking\s+for\s+(?:a|an)\s+([^\n\.]{5,50})/i,
+            /seeking\s+(?:a|an)?\s*([^\n\.]{5,50}?)\s+(?:to|for|who)/i,
+            /hiring\s+(?:a|an)?\s*([^\n\.]{5,50})/i,
+        ];
+        
+        // Common company name patterns
+        const companyPatterns = [
+            /(?:^|\n)\s*(?:company|employer)\s*[:\-]\s*([^\n]{3,40})/i,
+            /(?:at|join)\s+([A-Z][A-Za-z0-9&\s]{2,30}?)(?:\s+(?:is|are|we|as|in|,|\.))/i,
+            /([A-Z][A-Za-z0-9&]{2,20}(?:\s+[A-Z][A-Za-z0-9&]+){0,3})\s+is\s+(?:seeking|looking|hiring)/i,
+            /About\s+([A-Z][A-Za-z0-9&\s]{3,30}?)(?:\n|$)/i,
+        ];
+        
+        // Try title patterns
+        for (const pattern of titlePatterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) {
+                const extracted = match[1].trim();
+                // Validate: should look like a job title, not random text
+                if (extracted.length < 60 && /(?:intern|analyst|engineer|manager|developer|designer|scientist|specialist|coordinator|director|associate|consultant|lead)/i.test(extracted)) {
+                    jobTitle = extracted.replace(/[\(\[].*$/, '').trim();
+                    break;
+                }
+            }
+        }
+        
+        // Try company patterns
+        for (const pattern of companyPatterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) {
+                const extracted = match[1].trim();
+                if (extracted.length >= 2 && extracted.length < 40) {
+                    companyName = extracted;
+                    break;
+                }
+            }
+        }
+        
+        // Check for "X at Company" pattern in first few lines
+        const firstLines = text.split('\n').slice(0, 5).join(' ');
+        const atMatch = firstLines.match(/([A-Za-z\s]{5,40})\s+at\s+([A-Z][A-Za-z0-9&\s]{2,30})/i);
+        if (atMatch) {
+            if (!jobTitle && /(?:intern|analyst|engineer|manager|developer)/i.test(atMatch[1])) {
+                jobTitle = atMatch[1].trim();
+            }
+            if (!companyName) {
+                companyName = atMatch[2].trim();
+            }
+        }
+        
+        // Known companies from URL or text
+        const knownCompanies = ['S&P Global', 'Google', 'Microsoft', 'Amazon', 'Meta', 'Apple', 'Netflix', 'Goldman Sachs', 'JP Morgan', 'McKinsey'];
+        for (const kc of knownCompanies) {
+            if (text.includes(kc)) {
+                companyName = kc;
+                break;
+            }
+        }
+        
+        return { 
+            companyName: companyName || 'the company', 
+            jobTitle: jobTitle || 'this position' 
+        };
+    };
+
+    const handleCoverLetterGenerate = async (isRegenerate = false) => {
+        if (!coverLetterDescription.trim()) {
+            setCoverLetterError('Please provide the job description');
+            return;
+        }
+        let resumeData: ResumeData | null = null;
+        if (coverLetterSource === 'upload') {
+            resumeData = customCoverLetterResume;
+        } else {
+            const selectedProfile = profiles.find(p => p.id === selectedCoverLetterProfileId) || activeProfile;
+            resumeData = selectedProfile?.resume || null;
+        }
+        if (!resumeData) {
+            setCoverLetterError('Upload a resume or select a profile to continue');
+            return;
+        }
+        
+        setCoverLetterError('');
+        setCoverLetterGenerating(true);
+        
+        if (isRegenerate) {
+            setCoverLetterResult('');
+            setEditableCoverLetter('');
+            setIsEditingCoverLetter(false);
+        }
+        
+        try {
+            // Use the smart generator - no API needed!
+            const { letter, parsedJob } = await generateSmartCoverLetter(
+                coverLetterDescription,
+                resumeData,
+                coverLetterLength
+            );
+            
+            // Store detected job info for display
+            setDetectedJobInfo({
+                company: parsedJob.companyName,
+                title: parsedJob.jobTitle
+            });
+            
+            setCoverLetterResult(letter);
+            setCoverLetterCopied(false);
+            setEditableCoverLetter(letter);
+            setIsEditingCoverLetter(false);
+        } catch (err) {
+            setCoverLetterError((err as Error).message || 'Failed to generate cover letter');
+        } finally {
+            setCoverLetterGenerating(false);
+        }
+    };
+
+    const handleCoverLetterCopy = () => {
+        const text = getDisplayedCoverLetterText().trim();
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        setCoverLetterCopied(true);
+        setTimeout(() => setCoverLetterCopied(false), 2000);
+    };
+
+    const handleCoverLetterDownload = () => {
+        const text = getDisplayedCoverLetterText().trim();
+        if (!text) return;
+        const link = document.createElement('a');
+        const blob = new Blob([text], { type: 'text/plain' });
+        link.href = URL.createObjectURL(blob);
+        link.download = `cover-letter-${Date.now()}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const saveChanges = async () => {
         if (!activeProfile) return;
         setIsSaving(true);
@@ -205,6 +562,10 @@ export const Options: React.FC = () => {
         setHasChanges(false);
         setIsSaving(false);
     };
+
+    const coverLetterProfile = profiles.find(p => p.id === selectedCoverLetterProfileId) || activeProfile;
+    const currentCoverLetterText = getDisplayedCoverLetterText();
+    const hasCoverLetterText = Boolean(currentCoverLetterText.trim());
 
     return (
         <div className="flex" style={{ minHeight: '100vh' }}>
@@ -223,226 +584,368 @@ export const Options: React.FC = () => {
                 </div>
 
                 <div className="sidebar-content">
-                    <div className="sidebar-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                        <span style={{ fontSize: 11, letterSpacing: '0.05em', fontWeight: 600, color: 'var(--text-muted)' }}>YOUR PROFILES</span>
-                        {profiles.length > 0 && (
-                            <button
-                                onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}
-                                style={{
-                                    padding: '5px 12px',
-                                    fontSize: 12,
-                                    background: selectMode ? 'var(--accent)' : 'var(--bg-app)',
-                                    color: selectMode ? 'white' : 'var(--text-main)',
-                                    border: selectMode ? 'none' : '1px solid var(--border)',
-                                    borderRadius: 8,
-                                    cursor: 'pointer',
-                                    fontWeight: 600,
-                                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    boxShadow: selectMode ? '0 2px 8px rgba(255, 122, 69, 0.3)' : 'none'
-                                }}
-                            >
-                                {selectMode ? 'Done' : 'Select'}
-                            </button>
-                        )}
+                    <div className="sidebar-tab-bar">
+                        <button
+                            className={sidebarTab === 'profiles' ? 'active' : ''}
+                            onClick={() => setSidebarTab('profiles')}
+                        >
+                            Resume Profiles
+                        </button>
+                        <button
+                            className={sidebarTab === 'coverLetters' ? 'active' : ''}
+                            onClick={() => setSidebarTab('coverLetters')}
+                        >
+                            Saved Letters
+                        </button>
                     </div>
 
-                    {/* Bulk action bar - Sleeker floating style */}
-                    {selectMode && profiles.length > 0 && (
-                        <div style={{
-                            display: 'flex',
-                            gap: 8,
-                            padding: '12px',
-                            marginBottom: 20,
-                            background: 'var(--bg-app)',
-                            borderRadius: 12,
-                            border: '1px solid var(--border)',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
-                        }}>
-                            <button
-                                onClick={selectAll}
-                                style={{
-                                    flex: '1.2',
-                                    padding: '8px 4px',
-                                    fontSize: 11,
-                                    background: 'white',
-                                    border: '1px solid var(--border)',
-                                    borderRadius: 6,
-                                    cursor: 'pointer',
-                                    color: 'var(--text-main)',
-                                    fontWeight: 500
-                                }}
-                            >
-                                {selectedIds.size === profiles.length ? 'Deselect' : 'Select All'}
-                            </button>
-                            <button
-                                onClick={duplicateSelected}
-                                disabled={selectedIds.size === 0}
-                                style={{
-                                    flex: 1,
-                                    padding: '8px 4px',
-                                    fontSize: 11,
-                                    background: 'white',
-                                    border: '1px solid var(--border)',
-                                    borderRadius: 6,
-                                    cursor: selectedIds.size > 0 ? 'pointer' : 'not-allowed',
-                                    color: selectedIds.size > 0 ? 'var(--accent)' : 'var(--text-muted)',
-                                    fontWeight: 600,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 4,
-                                    opacity: selectedIds.size > 0 ? 1 : 0.6
-                                }}
-                            >
-                                <Copy size={13} />
-                                Copy {selectedIds.size > 0 && `(${selectedIds.size})`}
-                            </button>
-                            <button
-                                onClick={deleteSelected}
-                                disabled={selectedIds.size === 0}
-                                style={{
-                                    flex: 1,
-                                    padding: '8px 4px',
-                                    fontSize: 11,
-                                    background: selectedIds.size > 0 ? '#fff5f5' : 'white',
-                                    border: `1px solid ${selectedIds.size > 0 ? '#febcbc' : 'var(--border)'}`,
-                                    borderRadius: 6,
-                                    cursor: selectedIds.size > 0 ? 'pointer' : 'not-allowed',
-                                    color: selectedIds.size > 0 ? '#e03131' : 'var(--text-muted)',
-                                    fontWeight: 600,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: 4,
-                                    opacity: selectedIds.size > 0 ? 1 : 0.6
-                                }}
-                            >
-                                <Trash2 size={13} />
-                                Delete
-                            </button>
-                        </div>
-                    )}
+                    {sidebarTab === 'profiles' ? (
+                        <>
+                            <div className="sidebar-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                                <span style={{ fontSize: 11, letterSpacing: '0.05em', fontWeight: 600, color: 'var(--text-muted)' }}>YOUR PROFILES</span>
+                                {profiles.length > 0 && (
+                                    <button
+                                        onClick={() => { setSelectMode(!selectMode); setSelectedIds(new Set()); }}
+                                        style={{
+                                            padding: '5px 12px',
+                                            fontSize: 12,
+                                            background: selectMode ? 'var(--accent)' : 'var(--bg-app)',
+                                            color: selectMode ? 'white' : 'var(--text-main)',
+                                            border: selectMode ? 'none' : '1px solid var(--border)',
+                                            borderRadius: 8,
+                                            cursor: 'pointer',
+                                            fontWeight: 600,
+                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            boxShadow: selectMode ? '0 2px 8px rgba(255, 122, 69, 0.3)' : 'none'
+                                        }}
+                                    >
+                                        {selectMode ? 'Done' : 'Select'}
+                                    </button>
+                                )}
+                            </div>
 
-                    {profiles.length === 0 ? (
-                        <div className="sidebar-empty" style={{ padding: '40px 20px' }}>
-                            <div style={{ opacity: 0.5, marginBottom: 12 }}><FileText size={32} /></div>
-                            <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Get started by uploading a PDF</p>
-                        </div>
-                    ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {profiles.map(p => (
-                                <div
-                                    key={p.id}
-                                    onClick={() => selectMode ? null : selectProfile(p)}
-                                    className={`sidebar-item ${activeProfile?.id === p.id && !selectMode ? 'active' : ''}`}
-                                    style={{
-                                        background: selectedIds.has(p.id) ? 'var(--accent-secondary)' : undefined,
-                                        cursor: selectMode ? 'default' : 'pointer',
-                                        transition: 'all 0.2s ease',
-                                        borderRadius: 10,
-                                        padding: '10px 12px',
-                                        border: selectedIds.has(p.id) ? '1px solid var(--accent-light)' : '1px solid transparent'
-                                    }}
-                                >
-                                    {selectMode ? (
+                            {selectMode && profiles.length > 0 && (
+                                <div style={{
+                                    display: 'flex',
+                                    gap: 8,
+                                    padding: '12px',
+                                    marginBottom: 20,
+                                    background: 'var(--bg-app)',
+                                    borderRadius: 12,
+                                    border: '1px solid var(--border)',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
+                                }}>
+                                    <button
+                                        onClick={selectAll}
+                                        style={{
+                                            flex: '1.2',
+                                            padding: '8px 4px',
+                                            fontSize: 11,
+                                            background: 'white',
+                                            border: '1px solid var(--border)',
+                                            borderRadius: 6,
+                                            cursor: 'pointer',
+                                            color: 'var(--text-main)',
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        {selectedIds.size === profiles.length ? 'Deselect' : 'Select All'}
+                                    </button>
+                                    <button
+                                        onClick={duplicateSelected}
+                                        disabled={selectedIds.size === 0}
+                                        style={{
+                                            flex: 1,
+                                            padding: '8px 4px',
+                                            fontSize: 11,
+                                            background: 'white',
+                                            border: '1px solid var(--border)',
+                                            borderRadius: 6,
+                                            cursor: selectedIds.size > 0 ? 'pointer' : 'not-allowed',
+                                            color: selectedIds.size > 0 ? 'var(--accent)' : 'var(--text-muted)',
+                                            fontWeight: 600,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: 4,
+                                            opacity: selectedIds.size > 0 ? 1 : 0.6
+                                        }}
+                                    >
+                                        <Copy size={13} />
+                                        Copy {selectedIds.size > 0 && `(${selectedIds.size})`}
+                                    </button>
+                                    <button
+                                        onClick={deleteSelected}
+                                        disabled={selectedIds.size === 0}
+                                        style={{
+                                            flex: 1,
+                                            padding: '8px 4px',
+                                            fontSize: 11,
+                                            background: selectedIds.size > 0 ? '#fff5f5' : 'white',
+                                            border: `1px solid ${selectedIds.size > 0 ? '#febcbc' : 'var(--border)'}`,
+                                            borderRadius: 6,
+                                            cursor: selectedIds.size > 0 ? 'pointer' : 'not-allowed',
+                                            color: selectedIds.size > 0 ? '#e03131' : 'var(--text-muted)',
+                                            fontWeight: 600,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: 4,
+                                            opacity: selectedIds.size > 0 ? 1 : 0.6
+                                        }}
+                                    >
+                                        <Trash2 size={13} />
+                                        Delete
+                                    </button>
+                                </div>
+                            )}
+
+                            {profiles.length === 0 ? (
+                                <div className="sidebar-empty" style={{ padding: '40px 20px' }}>
+                                    <div style={{ opacity: 0.5, marginBottom: 12 }}><FileText size={32} /></div>
+                                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Get started by uploading a PDF</p>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    {profiles.map(p => (
                                         <div
-                                            onClick={(e) => toggleSelect(p.id, e)}
+                                            key={p.id}
+                                            onClick={() => selectMode ? null : selectProfile(p)}
+                                            className={`sidebar-item ${activeProfile?.id === p.id && !selectMode ? 'active' : ''}`}
                                             style={{
-                                                width: 18,
-                                                height: 18,
-                                                borderRadius: 4,
-                                                border: selectedIds.has(p.id) ? 'none' : '2px solid var(--border)',
-                                                background: selectedIds.has(p.id) ? 'var(--accent)' : 'white',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                transition: 'all 0.15s ease',
-                                                flexShrink: 0,
-                                                marginRight: 12
+                                                background: selectedIds.has(p.id) ? 'var(--accent-secondary)' : undefined,
+                                                cursor: selectMode ? 'default' : 'pointer',
+                                                transition: 'all 0.2s ease',
+                                                borderRadius: 10,
+                                                padding: '10px 12px',
+                                                border: selectedIds.has(p.id) ? '1px solid var(--accent-light)' : '1px solid transparent'
                                             }}
                                         >
-                                            {selectedIds.has(p.id) && <Check size={12} color="white" strokeWidth={3} />}
+                                            {selectMode ? (
+                                                <div
+                                                    onClick={(e) => toggleSelect(p.id, e)}
+                                                    style={{
+                                                        width: 18,
+                                                        height: 18,
+                                                        borderRadius: 4,
+                                                        border: selectedIds.has(p.id) ? 'none' : '2px solid var(--border)',
+                                                        background: selectedIds.has(p.id) ? 'var(--accent)' : 'white',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s ease',
+                                                        flexShrink: 0,
+                                                        marginRight: 12
+                                                    }}
+                                                >
+                                                    {selectedIds.has(p.id) && <Check size={12} color="white" strokeWidth={3} />}
+                                                </div>
+                                            ) : (
+                                                <div className="sidebar-item-icon" style={{
+                                                    background: activeProfile?.id === p.id ? 'var(--accent)' : 'var(--bg-app)',
+                                                    color: activeProfile?.id === p.id ? 'white' : 'var(--text-muted)'
+                                                }}>
+                                                    <User size={14} />
+                                                </div>
+                                            )}
+                                            <div className="sidebar-item-content" onClick={selectMode ? (e) => toggleSelect(p.id, e) : undefined}>
+                                                <div className="sidebar-item-name" style={{
+                                                    fontWeight: activeProfile?.id === p.id || selectedIds.has(p.id) ? 600 : 500,
+                                                    color: selectedIds.has(p.id) ? 'var(--accent)' : 'var(--text-main)'
+                                                }}>{p.name}</div>
+                                                {p.description && <div className="sidebar-item-desc" style={{ fontSize: 11 }}>{p.description}</div>}
+                                            </div>
+                                            {!selectMode && (
+                                                <button onClick={(e) => deleteProfile(p.id, e)} className="btn-ghost item-delete" style={{ padding: 4, opacity: 0 }}>
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <div className="sidebar-item-icon" style={{
-                                            background: activeProfile?.id === p.id ? 'var(--accent)' : 'var(--bg-app)',
-                                            color: activeProfile?.id === p.id ? 'white' : 'var(--text-muted)'
-                                        }}>
-                                            <User size={14} />
-                                        </div>
-                                    )}
-                                    <div className="sidebar-item-content" onClick={selectMode ? (e) => toggleSelect(p.id, e) : undefined}>
-                                        <div className="sidebar-item-name" style={{
-                                            fontWeight: activeProfile?.id === p.id || selectedIds.has(p.id) ? 600 : 500,
-                                            color: selectedIds.has(p.id) ? 'var(--accent)' : 'var(--text-main)'
-                                        }}>{p.name}</div>
-                                        {p.description && <div className="sidebar-item-desc" style={{ fontSize: 11 }}>{p.description}</div>}
-                                    </div>
-                                    {!selectMode && (
-                                        <button onClick={(e) => deleteProfile(p.id, e)} className="btn-ghost item-delete" style={{ padding: 4, opacity: 0 }}>
-                                            <Trash2 size={14} />
-                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            <div className="sidebar-actions" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
+                                <label style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 8,
+                                    padding: '12px 16px',
+                                    background: 'var(--accent)',
+                                    color: 'white',
+                                    borderRadius: 10,
+                                    fontWeight: 600,
+                                    fontSize: 13,
+                                    cursor: 'pointer',
+                                    boxShadow: 'var(--shadow-accent)',
+                                    transition: 'all 0.15s ease',
+                                    border: 'none'
+                                }}>
+                                    <Upload size={16} />
+                                    {isUploading ? 'Parsing...' : 'Upload Resume PDF'}
+                                    <input type="file" hidden accept=".pdf" onChange={(e) => e.target.files?.[0] && handleProcessFile(e.target.files[0])} disabled={isUploading} />
+                                </label>
+                                <button
+                                    onClick={createBlankProfile}
+                                    style={{
+                                        width: '100%',
+                                        padding: '10px 16px',
+                                        background: 'var(--bg-app)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: 10,
+                                        fontWeight: 500,
+                                        fontSize: 13,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 8,
+                                        color: 'var(--text-secondary)',
+                                        transition: 'all 0.15s ease'
+                                    }}
+                                >
+                                    <Plus size={16} />
+                                    New Blank Profile
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="saved-letters-container">
+                            {savedCoverLetters.length > 0 && (
+                                <div className="saved-letters-toolbar">
+                                    <button
+                                        onClick={() => { setLetterSelectMode(!letterSelectMode); setSelectedLetterIds(new Set()); }}
+                                        className={`toolbar-btn ${letterSelectMode ? 'active' : ''}`}
+                                    >
+                                        {letterSelectMode ? 'Done' : 'Select'}
+                                    </button>
+                                    {letterSelectMode && (
+                                        <>
+                                            <button onClick={selectAllLetters} className="toolbar-btn">
+                                                {selectedLetterIds.size === savedCoverLetters.length ? 'Deselect' : 'All'}
+                                            </button>
+                                            <button
+                                                onClick={copySelectedLetters}
+                                                disabled={selectedLetterIds.size === 0}
+                                                className="toolbar-btn"
+                                            >
+                                                <Copy size={12} /> Copy
+                                            </button>
+                                            <button
+                                                onClick={deleteSelectedLetters}
+                                                disabled={selectedLetterIds.size === 0}
+                                                className="toolbar-btn danger"
+                                            >
+                                                <Trash2 size={12} /> Delete
+                                            </button>
+                                        </>
                                     )}
                                 </div>
-                            ))}
+                            )}
+                            <div className="saved-letters-list">
+                                {savedCoverLetters.length === 0 ? (
+                                    <div className="sidebar-empty">
+                                        <div className="empty-icon"><Sparkles size={28} /></div>
+                                        <p className="empty-title">No saved letters</p>
+                                        <p className="empty-desc">Generate one from the lab to get started.</p>
+                                    </div>
+                                ) : (
+                                    savedCoverLetters.map(letter => {
+                                        const linkedProfile = letter.profileId ? profiles.find(p => p.id === letter.profileId) : null;
+                                        const isSelected = selectedLetterIds.has(letter.id);
+                                        return (
+                                            <div
+                                                key={letter.id}
+                                                className={`saved-letter-card ${isSelected ? 'selected' : ''}`}
+                                                onClick={letterSelectMode ? () => toggleLetterSelect(letter.id) : undefined}
+                                            >
+                                                {letterSelectMode && (
+                                                    <div className={`letter-checkbox ${isSelected ? 'checked' : ''}`}>
+                                                        {isSelected && <Check size={10} strokeWidth={3} />}
+                                                    </div>
+                                                )}
+                                                <div className="letter-content">
+                                                    <div className="letter-title">{letter.title}</div>
+                                                    <div className="letter-meta">
+                                                        <span className="letter-company">{letter.companyName}</span>
+                                                        <span className="letter-dot">•</span>
+                                                        <span className="letter-date">{new Date(letter.createdAt).toLocaleDateString()}</span>
+                                                    </div>
+                                                    {linkedProfile && (
+                                                        <div className="letter-profile">{linkedProfile.name}</div>
+                                                    )}
+                                                </div>
+                                                {!letterSelectMode && (
+                                                    <div className="letter-actions">
+                                                        <button
+                                                            onClick={(e) => copySingleLetter(letter, e)}
+                                                            className={letterCopyStatus[letter.id] ? 'copied' : ''}
+                                                            title="Copy"
+                                                        >
+                                                            {letterCopyStatus[letter.id] ? <Check size={14} /> : <Copy size={14} />}
+                                                        </button>
+                                                        <button onClick={() => handleLoadSavedCoverLetter(letter)} title="Open">
+                                                            Open
+                                                        </button>
+                                                        <button onClick={(e) => deleteSingleLetter(letter.id, e)} className="danger" title="Delete">
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                            {savedCoverLetters.length > 0 && (
+                                <div className="saved-letters-footer">
+                                    <span className="letter-count">{savedCoverLetters.length} letter{savedCoverLetters.length !== 1 ? 's' : ''}</span>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
 
-                <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 16 }}>
-                    <label style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        width: '100%',
-                        padding: '12px 16px',
-                        background: 'var(--accent)',
-                        color: 'white',
-                        borderRadius: 10,
-                        fontWeight: 600,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        boxShadow: 'var(--shadow-accent)',
-                        transition: 'all 0.15s ease',
-                        border: 'none'
-                    }}>
-                        <Upload size={16} />
-                        {isUploading ? 'Parsing...' : 'Upload PDF'}
-                        <input type="file" hidden accept=".pdf" onChange={(e) => e.target.files?.[0] && handleProcessFile(e.target.files[0])} disabled={isUploading} />
-                    </label>
+                <div className="sidebar-cover-letter-section">
+                    <div className="cover-letter-lab-header">
+                        <div className="cover-letter-lab-icon">
+                            <PenSquare size={18} />
+                        </div>
+                        <div>
+                            <div className="cover-letter-lab-title">Cover Letter Lab</div>
+                            <p className="cover-letter-lab-desc">Build tailored letters without leaving your workspace.</p>
+                        </div>
+                    </div>
                     <button
-                        onClick={createBlankProfile}
+                        onClick={scrollToCoverLetterPanel}
                         style={{
                             width: '100%',
-                            padding: '10px 16px',
-                            background: 'var(--bg-app)',
-                            border: '1px solid var(--border)',
+                            padding: '12px 14px',
                             borderRadius: 10,
-                            fontWeight: 500,
-                            fontSize: 13,
+                            border: 'none',
+                            background: 'linear-gradient(135deg, #ff944d 0%, #ffc168 100%)',
+                            color: 'white',
+                            fontWeight: 600,
                             display: 'flex',
-                            alignItems: 'center',
                             justifyContent: 'center',
+                            alignItems: 'center',
                             gap: 8,
-                            color: 'var(--text-secondary)',
-                            transition: 'all 0.15s ease'
+                            boxShadow: '0 12px 32px rgba(255, 157, 49, 0.35)'
                         }}
                     >
-                        <Plus size={16} />
-                        New Blank Profile
+                        <Sparkles size={16} />
+                        Open Cover Letter Lab
                     </button>
                 </div>
+
             </aside>
 
             {/* Main */}
-            <main style={{ flex: 1, padding: 32, maxWidth: 900, overflow: 'auto' }}>
+            <main style={{ flex: 1, padding: 32, maxWidth: 900, overflow: 'auto', position: 'relative' }}>
                 {activeProfile ? (
-                    <div className="fade-in">
-                        {/* Header */}
-                        <div className="flex justify-between items-start" style={{ marginBottom: 24 }}>
-                            <div style={{ flex: 1 }}>
+                    <div className="profile-section">
+                        <div className="profile-sticky-row">
+                            <div className="profile-sticky-info">
                                 {editingMeta ? (
                                     <div className="flex flex-col gap-sm" style={{ maxWidth: 350 }}>
                                         <input value={activeProfile.name} onChange={(e) => updateProfile({ name: e.target.value })} style={{ fontSize: 20, fontWeight: 700 }} placeholder="Profile Name" />
@@ -460,18 +963,49 @@ export const Options: React.FC = () => {
                                         <p style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 4 }}>
                                             Updated {new Date(activeProfile.updatedAt).toLocaleDateString()}
                                         </p>
+                                        {hasChanges && <span className="unsaved-pill">Unsaved changes</span>}
                                     </div>
                                 )}
                             </div>
-                            {hasChanges && (
-                                <button onClick={saveChanges} className="btn-primary" disabled={isSaving}>
-                                    <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                            <div className="profile-sticky-actions">
+                                {hasChanges && (
+                                    <button
+                                        onClick={() => setHasChanges(false)}
+                                        className="btn-ghost"
+                                        style={{ marginRight: 8, padding: '8px 14px' }}
+                                    >
+                                        Discard
+                                    </button>
+                                )}
+                                <button
+                                    onClick={saveChanges}
+                                    disabled={!hasChanges || isSaving}
+                                    className="btn-primary"
+                                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px' }}
+                                >
+                                    <Check size={14} /> {isSaving ? 'Saving...' : 'Save Changes'}
                                 </button>
-                            )}
+                            </div>
                         </div>
-
                         {activeProfile.resume && (
-                            <ResumeContent resume={activeProfile.resume} onUpdate={updateResume} onCopy={copyToClipboard} copyStatus={copyStatus} />
+                            <div className="profile-content">
+                                <ResumeContent resume={activeProfile.resume} onUpdate={updateResume} onCopy={copyToClipboard} copyStatus={copyStatus} />
+                            </div>
+                        )}
+
+                        {/* Floating Save Button */}
+                        {hasChanges && (
+                            <div className="floating-save-bar">
+                                <span className="floating-save-text">You have unsaved changes</span>
+                                <div className="floating-save-actions">
+                                    <button onClick={() => setHasChanges(false)} className="discard-btn">
+                                        <X size={14} /> Discard
+                                    </button>
+                                    <button onClick={saveChanges} disabled={isSaving} className="save-btn">
+                                        <Check size={14} /> {isSaving ? 'Saving...' : 'Save Changes'}
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
                 ) : (
@@ -494,6 +1028,267 @@ export const Options: React.FC = () => {
                         <span className="badge">PDF or DOCX</span>
                     </div>
                 )}
+
+                <div id="cover-letter-panel" ref={coverLetterPanelRef} className="cover-letter-panel">
+                    <div className="cover-letter-panel-heading">
+                        <div>
+                            <p className="cover-letter-panel-subtitle">Cover Letter Lab</p>
+                            <h2>Write letters that feel human</h2>
+                            <p className="cover-letter-panel-description">Pick a resume, paste the job posting, or fetch it from any URL. Applyly handles the rest.</p>
+                        </div>
+                        <div className="cover-letter-panel-meta">
+                            <span className="meta-label">Resume source</span>
+                            <strong className="meta-value">
+                                {coverLetterSource === 'upload' ? (customResumeName || 'Uploaded resume') : coverLetterProfile?.name || 'Select a profile'}
+                            </strong>
+                            {coverLetterSource === 'upload' && !customResumeName && (
+                                <span className="meta-note">Upload a PDF to enable this source.</span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Smart Detection Info - Shows what was parsed */}
+                    {detectedJobInfo && coverLetterResult && (
+                        <div className="detected-job-info">
+                            <div className="detected-item">
+                                <span className="detected-label">Detected Company:</span>
+                                <span className="detected-value">{detectedJobInfo.company}</span>
+                            </div>
+                            <div className="detected-item">
+                                <span className="detected-label">Detected Position:</span>
+                                <span className="detected-value">{detectedJobInfo.title}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="cover-letter-source-toggle">
+                        <button
+                            onClick={() => {
+                                setCoverLetterSource('profile');
+                                setCoverLetterError('');
+                                if (!selectedCoverLetterProfileId && activeProfile) {
+                                    setSelectedCoverLetterProfileId(activeProfile.id);
+                                }
+                            }}
+                            disabled={!activeProfile?.resume}
+                            className={coverLetterSource === 'profile' ? 'active' : ''}
+                        >
+                            Use Dashboard Profile
+                        </button>
+                        <button
+                            onClick={() => {
+                                setCoverLetterError('');
+                                coverLetterFileRef.current?.click();
+                            }}
+                            className={coverLetterSource === 'upload' ? 'active' : ''}
+                            disabled={coverLetterParsing}
+                        >
+                            <Upload size={14} />
+                            {coverLetterParsing ? 'Parsing resume' : 'Upload Resume PDF'}
+                        </button>
+                    </div>
+
+                    <input type="file" ref={coverLetterFileRef} hidden accept=".pdf" onChange={onCoverLetterFileChange} />
+
+                    <div className="cover-letter-profile-select">
+                        <label>Choose resume profile</label>
+                        <select
+                            value={selectedCoverLetterProfileId ?? ''}
+                            onChange={(e) => {
+                                setSelectedCoverLetterProfileId(e.target.value || null);
+                                setCoverLetterError('');
+                            }}
+                            disabled={coverLetterSource === 'upload' || profiles.length === 0}
+                        >
+                            <option value="" disabled>Select a profile</option>
+                            {profiles.map(p => (
+                                <option key={p.id} value={p.id}>
+                                    {p.name}{p.id === activeProfile?.id ? ' (Active)' : ''}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="cover-letter-select-note">
+                            {coverLetterSource === 'upload'
+                                ? 'Switch to Dashboard Profile to select a saved resume.'
+                                : 'Selecting a profile lets you reuse any saved resume for every letter.'}
+                        </p>
+                    </div>
+
+                    <div className="cover-letter-input-toggle">
+                        <button
+                            onClick={() => { setCoverLetterInputMode('text'); setCoverLetterError(''); }}
+                            className={coverLetterInputMode === 'text' ? 'active' : ''}
+                        >
+                            Paste Job Details
+                        </button>
+                        <button
+                            onClick={() => { setCoverLetterInputMode('url'); setCoverLetterError(''); }}
+                            className={coverLetterInputMode === 'url' ? 'active' : ''}
+                        >
+                            From Link
+                        </button>
+                    </div>
+
+                    {coverLetterInputMode === 'url' && (
+                        <div className="cover-letter-url">
+                            <label>Job Posting URL</label>
+                            <div className="cover-letter-url-field">
+                                <input
+                                    type="url"
+                                    value={coverLetterUrl}
+                                    onChange={(e) => { setCoverLetterUrl(e.target.value); setCoverLetterError(''); }}
+                                    placeholder="https://example.com/job-posting"
+                                />
+                                <button
+                                    onClick={handleCoverLetterFetchFromUrl}
+                                    disabled={coverLetterFetching || !coverLetterUrl.trim()}
+                                >
+                                    {coverLetterFetching ? (
+                                        <>
+                                            <Loader size={14} />
+                                            Fetching
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload size={14} />
+                                            Fetch
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="cover-letter-description">
+                        <label>Job Description</label>
+                        <textarea
+                            value={coverLetterDescription}
+                            onChange={(e) => {
+                                setCoverLetterDescription(e.target.value);
+                                setCoverLetterResult('');
+                                setCoverLetterError('');
+                            }}
+                            placeholder="Paste the full job description here, including company details and role requirements."
+                        />
+                    </div>
+
+                    {coverLetterError && (
+                        <div className="cover-letter-error">
+                            {coverLetterError}
+                        </div>
+                    )}
+
+                    <div className="letter-length-selector">
+                        <label>Letter Length</label>
+                        <div className="length-options">
+                            {(['short', 'medium', 'long'] as LetterLength[]).map(len => (
+                                <button
+                                    key={len}
+                                    className={`length-btn ${coverLetterLength === len ? 'active' : ''}`}
+                                    onClick={() => setCoverLetterLength(len)}
+                                >
+                                    {len === 'short' && '📝 Short'}
+                                    {len === 'medium' && '📄 Medium'}
+                                    {len === 'long' && '📑 Long'}
+                                </button>
+                            ))}
+                        </div>
+                        <span className="length-hint">
+                            {coverLetterLength === 'short' && '~150 words • Quick & focused'}
+                            {coverLetterLength === 'medium' && '~250 words • Balanced coverage'}
+                            {coverLetterLength === 'long' && '~400 words • Detailed & comprehensive'}
+                        </span>
+                    </div>
+
+                    <div className="cover-letter-actions">
+                        <button
+                            className="primary"
+                            onClick={() => handleCoverLetterGenerate()}
+                            disabled={coverLetterGenerating || !coverLetterDescription.trim()}
+                        >
+                            {coverLetterGenerating ? (
+                                <>
+                                    <Loader size={16} />
+                                    Generating Letter
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles size={16} />
+                                    Generate Cover Letter
+                                </>
+                            )}
+                        </button>
+                        <button
+                            className="secondary"
+                            onClick={() => handleCoverLetterGenerate(true)}
+                            disabled={coverLetterGenerating || !coverLetterResult || !coverLetterDescription.trim()}
+                        >
+                            Regenerate Letter
+                        </button>
+                    </div>
+
+                    {coverLetterResult && (
+                        <div className="cover-letter-result">
+                            <div className="ai-warning">
+                                <span className="warning-icon">⚠️</span>
+                                <span>AI-generated content. Please review for accuracy, relevance, spelling, and grammar before use.</span>
+                            </div>
+                            <div className="cover-letter-result-header">
+                                <h3>Your Cover Letter</h3>
+                                <div className="cover-letter-result-actions">
+                                    <button onClick={handleCoverLetterCopy} className={coverLetterCopied ? 'copied' : undefined}>
+                                        {coverLetterCopied ? 'Copied' : 'Copy'}
+                                    </button>
+                                    <button onClick={handleCoverLetterDownload}>Download</button>
+                                </div>
+                            </div>
+                            <div className="cover-letter-result-tools">
+                                <div className="cover-letter-result-title-input">
+                                    <input
+                                        value={coverLetterTitle}
+                                        onChange={(e) => setCoverLetterTitle(e.target.value)}
+                                        placeholder="Title for saved letter (optional)"
+                                    />
+                                </div>
+                                <div className="cover-letter-result-control-row">
+                                    <button onClick={handleClearCoverLetterLab}>Clear</button>
+                                    <button
+                                        onClick={handleEditCoverLetter}
+                                        disabled={!coverLetterResult || isEditingCoverLetter}
+                                    >
+                                        Edit
+                                    </button>
+                                    {isEditingCoverLetter && (
+                                        <button
+                                            onClick={applyEditedCoverLetter}
+                                            disabled={!editableCoverLetter.trim()}
+                                        >
+                                            Apply Edits
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={handleSaveCoverLetter}
+                                        disabled={!hasCoverLetterText}
+                                        className="primary"
+                                    >
+                                        Save Letter
+                                    </button>
+                                </div>
+                            </div>
+                            {isEditingCoverLetter ? (
+                                <textarea
+                                    className="cover-letter-edit-area"
+                                    value={editableCoverLetter}
+                                    onChange={(e) => setEditableCoverLetter(e.target.value)}
+                                />
+                            ) : (
+                                <pre>
+                                    {coverLetterResult}
+                                </pre>
+                            )}
+                        </div>
+                    )}
+                </div>
             </main>
         </div>
     );
@@ -634,6 +1429,32 @@ const MonthYearField: React.FC<{ label: string; value: string; onChange: (v: str
         );
     };
 
+const DEGREE_OPTIONS = [
+    'Bachelor\'s Degree',
+    'Master\'s Degree',
+    'PhD',
+    'Associate\'s Degree',
+    'Diploma',
+    'Certificate',
+    'High School',
+    'Vocational',
+    'Other'
+];
+
+const SelectField: React.FC<{ label: string; value: string; onChange: (v: string) => void; id: string; options: string[]; onCopy: (t: string, id: string) => void; cs: Record<string, boolean>; placeholder?: string }> =
+    ({ label, value, onChange, id, options, onCopy, cs, placeholder }) => (
+        <div className="field-group">
+            <div className="field-label">
+                <span className="field-label-text">{label}</span>
+                <CopyBtn text={value} id={id} onCopy={onCopy} cs={cs} />
+            </div>
+            <select value={value} onChange={e => onChange(e.target.value)} style={{ appearance: 'auto', padding: '8px 10px' }}>
+                <option value="">{placeholder || `Select ${label.toLowerCase()}`}</option>
+                {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+        </div>
+    );
+
 const DateFields: React.FC<{ dates: DateRange; onChange: (d: DateRange) => void; prefix: string; onCopy: (t: string, id: string) => void; cs: Record<string, boolean> }> =
     ({ dates, onChange, prefix, onCopy, cs }) => (
         <div className="grid-4">
@@ -758,7 +1579,7 @@ const EducationSection: React.FC<SectionProps<Education>> = ({ items, onChange, 
                 <EntryCard key={item.id} title={item.school} subtitle={item.degree} onDelete={() => remove(i)}>
                     <div className="grid-2">
                         <Field label="School" value={item.school} onChange={v => update(i, { school: v })} id={`e${i}-s`} onCopy={onCopy} cs={cs} />
-                        <Field label="Degree" value={item.degree} onChange={v => update(i, { degree: v })} id={`e${i}-d`} onCopy={onCopy} cs={cs} />
+                        <SelectField label="Degree" value={item.degree} onChange={v => update(i, { degree: v })} id={`e${i}-d`} options={DEGREE_OPTIONS} onCopy={onCopy} cs={cs} />
                         <Field label="Field" value={item.field} onChange={v => update(i, { field: v })} id={`e${i}-f`} onCopy={onCopy} cs={cs} />
                         <Field label="Location" value={item.location} onChange={v => update(i, { location: v })} id={`e${i}-l`} onCopy={onCopy} cs={cs} />
                         <Field label="GPA" value={item.gpa || ''} onChange={v => update(i, { gpa: v })} id={`e${i}-g`} onCopy={onCopy} cs={cs} />
