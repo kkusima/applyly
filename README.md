@@ -43,4 +43,4 @@ Go to the **[Chrome Web Store](https://chromewebstore.google.com/detail/applyly/
 
 ## License
 
-MIT License. Applyly™ © 2026 [Kenneth Kusima](http://tinyurl.com/kennethkusima). All rights reserved.
+Applyly™ © 2026 [Kenneth Kusima](http://tinyurl.com/kennethkusima). All rights reserved.
