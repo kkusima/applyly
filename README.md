@@ -4,7 +4,7 @@
 
 # Applyly™
 
-**Free Open-Source Chrome Extension. Apply Easily — Put your best foot forward in every application.**
+**[Website](https://kkusima.github.io/applyly/) | [GitHub](https://github.com/kkusima/applyly) | [Chrome Web Store](https://chromewebstore.google.com/detail/applyly/jfhblglahmaichgdjaehlgdgocibbmnb)**
 
 Applyly securely stores your resume data locally and helps you ensure every application is filled with your highest quality, curated information. Eliminates repetitive errors and inconsistencies across portals (LinkedIn, Greenhouse, Lever).
 
@@ -18,17 +18,11 @@ Applyly securely stores your resume data locally and helps you ensure every appl
 
 ## Screenshots
 
-### Dashboard & Editor
 <p align="center">
-  <img src="public/Screenshots/OG/2.png" width="45%" alt="Dashboard"/>
-  <img src="public/Screenshots/OG/3.png" width="45%" alt="Editor"/>
-</p>
-
-### Flows & Popups
-<p align="center">
-  <img src="public/Screenshots/OG/1.png" width="30%" alt="Empty State"/>
-  <img src="public/Screenshots/OG/4.png" width="30%" alt="Popup"/>
-  <img src="public/Screenshots/OG/5.png" width="30%" alt="Manual Entry"/>
+  <img src="docs/assets/screenshots/1.jpg" width="22%" alt="Empty State"/>
+  <img src="docs/assets/screenshots/2.jpg" width="22%" alt="Dashboard"/>
+  <img src="docs/assets/screenshots/3.jpg" width="22%" alt="Editor"/>
+  <img src="docs/assets/screenshots/4.jpg" width="22%" alt="Popup"/>
 </p>
 
 ## Installation
