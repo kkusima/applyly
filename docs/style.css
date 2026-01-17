@@ -326,14 +326,16 @@ footer {
     display: grid;
     gap: 24px;
     margin-bottom: 24px;
+    justify-content: center;
 }
 
 .wide-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(300px, 514px));
 }
 
 .tall-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 334px));
+    width: 100%;
 }
 
 .gallery-item {
