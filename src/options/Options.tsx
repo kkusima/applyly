@@ -39,7 +39,7 @@ export const Options: React.FC = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [copyStatus, setCopyStatus] = useState<Record<string, boolean>>({});
     const [hasChanges, setHasChanges] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
+
     const [editingMeta, setEditingMeta] = useState(false);
     const [selectMode, setSelectMode] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -413,7 +413,7 @@ export const Options: React.FC = () => {
     const detectCompanyAndTitle = (text: string) => {
         let companyName = '';
         let jobTitle = '';
-        
+
         // Common job title patterns
         const titlePatterns = [
             /(?:^|\n)\s*(?:job\s*title|role|position)\s*[:\-]\s*([^\n]{5,60})/i,
@@ -422,7 +422,7 @@ export const Options: React.FC = () => {
             /seeking\s+(?:a|an)?\s*([^\n\.]{5,50}?)\s+(?:to|for|who)/i,
             /hiring\s+(?:a|an)?\s*([^\n\.]{5,50})/i,
         ];
-        
+
         // Common company name patterns
         const companyPatterns = [
             /(?:^|\n)\s*(?:company|employer)\s*[:\-]\s*([^\n]{3,40})/i,
@@ -430,7 +430,7 @@ export const Options: React.FC = () => {
             /([A-Z][A-Za-z0-9&]{2,20}(?:\s+[A-Z][A-Za-z0-9&]+){0,3})\s+is\s+(?:seeking|looking|hiring)/i,
             /About\s+([A-Z][A-Za-z0-9&\s]{3,30}?)(?:\n|$)/i,
         ];
-        
+
         // Try title patterns
         for (const pattern of titlePatterns) {
             const match = text.match(pattern);
@@ -443,7 +443,7 @@ export const Options: React.FC = () => {
                 }
             }
         }
-        
+
         // Try company patterns
         for (const pattern of companyPatterns) {
             const match = text.match(pattern);
@@ -455,7 +455,7 @@ export const Options: React.FC = () => {
                 }
             }
         }
-        
+
         // Check for "X at Company" pattern in first few lines
         const firstLines = text.split('\n').slice(0, 5).join(' ');
         const atMatch = firstLines.match(/([A-Za-z\s]{5,40})\s+at\s+([A-Z][A-Za-z0-9&\s]{2,30})/i);
@@ -467,7 +467,7 @@ export const Options: React.FC = () => {
                 companyName = atMatch[2].trim();
             }
         }
-        
+
         // Known companies from URL or text
         const knownCompanies = ['S&P Global', 'Google', 'Microsoft', 'Amazon', 'Meta', 'Apple', 'Netflix', 'Goldman Sachs', 'JP Morgan', 'McKinsey'];
         for (const kc of knownCompanies) {
@@ -476,10 +476,10 @@ export const Options: React.FC = () => {
                 break;
             }
         }
-        
-        return { 
-            companyName: companyName || 'the company', 
-            jobTitle: jobTitle || 'this position' 
+
+        return {
+            companyName: companyName || 'the company',
+            jobTitle: jobTitle || 'this position'
         };
     };
 
@@ -499,16 +499,16 @@ export const Options: React.FC = () => {
             setCoverLetterError('Upload a resume or select a profile to continue');
             return;
         }
-        
+
         setCoverLetterError('');
         setCoverLetterGenerating(true);
-        
+
         if (isRegenerate) {
             setCoverLetterResult('');
             setEditableCoverLetter('');
             setIsEditingCoverLetter(false);
         }
-        
+
         try {
             // Use the smart generator - no API needed!
             const { letter, parsedJob } = await generateSmartCoverLetter(
@@ -516,13 +516,13 @@ export const Options: React.FC = () => {
                 resumeData,
                 coverLetterLength
             );
-            
+
             // Store detected job info for display
             setDetectedJobInfo({
                 company: parsedJob.companyName,
                 title: parsedJob.jobTitle
             });
-            
+
             setCoverLetterResult(letter);
             setCoverLetterCopied(false);
             setEditableCoverLetter(letter);
@@ -554,14 +554,7 @@ export const Options: React.FC = () => {
         document.body.removeChild(link);
     };
 
-    const saveChanges = async () => {
-        if (!activeProfile) return;
-        setIsSaving(true);
-        await storage.updateProfile(activeProfile);
-        setProfiles(profiles.map(p => p.id === activeProfile.id ? activeProfile : p));
-        setHasChanges(false);
-        setIsSaving(false);
-    };
+
 
     const coverLetterProfile = profiles.find(p => p.id === selectedCoverLetterProfileId) || activeProfile;
     const currentCoverLetterText = getDisplayedCoverLetterText();
@@ -977,14 +970,7 @@ export const Options: React.FC = () => {
                                         Discard
                                     </button>
                                 )}
-                                <button
-                                    onClick={saveChanges}
-                                    disabled={!hasChanges || isSaving}
-                                    className="btn-primary"
-                                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px' }}
-                                >
-                                    <Check size={14} /> {isSaving ? 'Saving...' : 'Save Changes'}
-                                </button>
+
                             </div>
                         </div>
                         {activeProfile.resume && (
@@ -1001,9 +987,7 @@ export const Options: React.FC = () => {
                                     <button onClick={() => setHasChanges(false)} className="discard-btn">
                                         <X size={14} /> Discard
                                     </button>
-                                    <button onClick={saveChanges} disabled={isSaving} className="save-btn">
-                                        <Check size={14} /> {isSaving ? 'Saving...' : 'Save Changes'}
-                                    </button>
+
                                 </div>
                             </div>
                         )}
@@ -1455,13 +1439,24 @@ const SelectField: React.FC<{ label: string; value: string; onChange: (v: string
         </div>
     );
 
-const DateFields: React.FC<{ dates: DateRange; onChange: (d: DateRange) => void; prefix: string; onCopy: (t: string, id: string) => void; cs: Record<string, boolean> }> =
-    ({ dates, onChange, prefix, onCopy, cs }) => (
+const DateFields: React.FC<{
+    dates: DateRange;
+    onChange: (d: DateRange) => void;
+    prefix: string;
+    onCopy: (t: string, id: string) => void;
+    cs: Record<string, boolean>;
+    present?: boolean;
+    onPresentChange?: (p: boolean) => void;
+}> = ({ dates, onChange, prefix, onCopy, cs, present, onPresentChange }) => (
+    <div className="flex flex-col gap-sm">
         <div className="grid-4">
             {(['startMonth', 'startYear', 'endMonth', 'endYear'] as const).map(k => {
                 const isMonth = k.includes('Month');
+                const isEnd = k.startsWith('end');
+                const isDisabled = isEnd && present;
+
                 return (
-                    <div key={k} className="field-group">
+                    <div key={k} className="field-group" style={{ opacity: isDisabled ? 0.5 : 1, pointerEvents: isDisabled ? 'none' : 'auto' }}>
                         <div className="field-label">
                             <span className="field-label-text">{k.replace(/([A-Z])/g, ' $1')}</span>
                             <CopyBtn text={dates[k]} id={`${prefix}-${k}`} onCopy={onCopy} cs={cs} />
@@ -1470,6 +1465,7 @@ const DateFields: React.FC<{ dates: DateRange; onChange: (d: DateRange) => void;
                             <select
                                 value={dates[k]}
                                 onChange={e => onChange({ ...dates, [k]: e.target.value })}
+                                disabled={isDisabled}
                                 style={{
                                     appearance: 'auto',
                                     padding: '8px 10px'
@@ -1486,13 +1482,27 @@ const DateFields: React.FC<{ dates: DateRange; onChange: (d: DateRange) => void;
                                 placeholder="YYYY"
                                 min={MIN_YEAR}
                                 max={MAX_YEAR}
+                                disabled={isDisabled}
                             />
                         )}
                     </div>
                 );
             })}
         </div>
-    );
+        {onPresentChange && (
+            <div className="flex items-center gap-sm">
+                <input
+                    type="checkbox"
+                    id={`${prefix}-present`}
+                    checked={present}
+                    onChange={e => onPresentChange(e.target.checked)}
+                    style={{ width: 'auto' }}
+                />
+                <label htmlFor={`${prefix}-present`} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>I currently work/study here</label>
+            </div>
+        )}
+    </div>
+);
 
 // ============================================================
 // ENTRY WRAPPER (Collapsible)
@@ -1545,7 +1555,7 @@ const PersonalSection: React.FC<{ info: ResumeData['personalInfo']; onChange: (i
 const WorkSection: React.FC<SectionProps<WorkExperience>> = ({ items, onChange, onCopy, cs }) => {
     const update = (i: number, u: Partial<WorkExperience>) => { const n = [...items]; n[i] = { ...n[i], ...u }; onChange(n); };
     const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
-    const add = () => onChange([...items, { id: crypto.randomUUID(), title: '', company: '', location: '', dates: emptyDateRange(), description: '' }]);
+    const add = () => onChange([...items, { id: crypto.randomUUID(), title: '', company: '', location: '', dates: emptyDateRange(), description: '', present: false }]);
 
     return (
         <div>
@@ -1558,7 +1568,24 @@ const WorkSection: React.FC<SectionProps<WorkExperience>> = ({ items, onChange, 
                     </div>
                     <div style={{ marginTop: 12 }}>
                         <div className="field-label-text" style={{ marginBottom: 8 }}>Date Range</div>
-                        <DateFields dates={item.dates} onChange={d => update(i, { dates: d })} prefix={`w${i}`} onCopy={onCopy} cs={cs} />
+                        <DateFields
+                            dates={item.dates}
+                            onChange={d => update(i, { dates: d })}
+                            prefix={`w${i}`}
+                            onCopy={onCopy}
+                            cs={cs}
+                            present={item.present}
+                            onPresentChange={p => {
+                                const newDates = { ...item.dates };
+                                if (p) {
+                                    newDates.endMonth = '';
+                                    newDates.endYear = 'Present';
+                                } else {
+                                    newDates.endYear = '';
+                                }
+                                update(i, { present: p, dates: newDates });
+                            }}
+                        />
                     </div>
                     <Field label="Description" value={item.description} onChange={v => update(i, { description: v })} id={`w${i}-d`} onCopy={onCopy} cs={cs} multi />
                 </EntryCard>
@@ -1571,7 +1598,7 @@ const WorkSection: React.FC<SectionProps<WorkExperience>> = ({ items, onChange, 
 const EducationSection: React.FC<SectionProps<Education>> = ({ items, onChange, onCopy, cs }) => {
     const update = (i: number, u: Partial<Education>) => { const n = [...items]; n[i] = { ...n[i], ...u }; onChange(n); };
     const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
-    const add = () => onChange([...items, { id: crypto.randomUUID(), school: '', degree: '', field: '', location: '', dates: emptyDateRange(), gpa: '', description: '' }]);
+    const add = () => onChange([...items, { id: crypto.randomUUID(), school: '', degree: '', field: '', location: '', dates: emptyDateRange(), gpa: '', description: '', present: false }]);
 
     return (
         <div>
@@ -1586,7 +1613,24 @@ const EducationSection: React.FC<SectionProps<Education>> = ({ items, onChange, 
                     </div>
                     <div style={{ marginTop: 12 }}>
                         <div className="field-label-text" style={{ marginBottom: 8 }}>Date Range</div>
-                        <DateFields dates={item.dates} onChange={d => update(i, { dates: d })} prefix={`e${i}`} onCopy={onCopy} cs={cs} />
+                        <DateFields
+                            dates={item.dates}
+                            onChange={d => update(i, { dates: d })}
+                            prefix={`e${i}`}
+                            onCopy={onCopy}
+                            cs={cs}
+                            present={item.present}
+                            onPresentChange={p => {
+                                const newDates = { ...item.dates };
+                                if (p) {
+                                    newDates.endMonth = '';
+                                    newDates.endYear = 'Present';
+                                } else {
+                                    newDates.endYear = '';
+                                }
+                                update(i, { present: p, dates: newDates });
+                            }}
+                        />
                     </div>
                     <Field label="Description" value={item.description} onChange={v => update(i, { description: v })} id={`e${i}-desc`} onCopy={onCopy} cs={cs} multi />
                 </EntryCard>
@@ -1599,7 +1643,7 @@ const EducationSection: React.FC<SectionProps<Education>> = ({ items, onChange, 
 const LeadershipSection: React.FC<SectionProps<LeadershipExperience>> = ({ items, onChange, onCopy, cs }) => {
     const update = (i: number, u: Partial<LeadershipExperience>) => { const n = [...items]; n[i] = { ...n[i], ...u }; onChange(n); };
     const remove = (i: number) => onChange(items.filter((_, idx) => idx !== i));
-    const add = () => onChange([...items, { id: crypto.randomUUID(), role: '', organization: '', location: '', dates: emptyDateRange(), description: '' }]);
+    const add = () => onChange([...items, { id: crypto.randomUUID(), role: '', organization: '', location: '', dates: emptyDateRange(), description: '', present: false }]);
 
     return (
         <div>
@@ -1612,7 +1656,24 @@ const LeadershipSection: React.FC<SectionProps<LeadershipExperience>> = ({ items
                     </div>
                     <div style={{ marginTop: 12 }}>
                         <div className="field-label-text" style={{ marginBottom: 8 }}>Date Range</div>
-                        <DateFields dates={item.dates} onChange={d => update(i, { dates: d })} prefix={`l${i}`} onCopy={onCopy} cs={cs} />
+                        <DateFields
+                            dates={item.dates}
+                            onChange={d => update(i, { dates: d })}
+                            prefix={`l${i}`}
+                            onCopy={onCopy}
+                            cs={cs}
+                            present={item.present}
+                            onPresentChange={p => {
+                                const newDates = { ...item.dates };
+                                if (p) {
+                                    newDates.endMonth = '';
+                                    newDates.endYear = 'Present';
+                                } else {
+                                    newDates.endYear = '';
+                                }
+                                update(i, { present: p, dates: newDates });
+                            }}
+                        />
                     </div>
                     <Field label="Description" value={item.description} onChange={v => update(i, { description: v })} id={`l${i}-d`} onCopy={onCopy} cs={cs} multi />
                 </EntryCard>

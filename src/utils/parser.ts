@@ -636,7 +636,8 @@ function extractWorkExperience(lines: string[]): WorkExperience[] {
                 company: company || 'Company',
                 location,
                 dates,
-                description: description ? '• ' + description : ''
+                description: description ? '• ' + description : '',
+                present: dates.endYear === 'Present'
             });
         }
     }
@@ -790,7 +791,8 @@ function parseEducationEntry(lines: string[], schoolKeywords: string[], famousSc
         location,
         dates,
         gpa,
-        description: desc
+        description: desc,
+        present: dates.endYear === 'Present'
     };
 }
 
@@ -1161,7 +1163,8 @@ function extractLeadership(lines: string[]): LeadershipExperience[] {
             experiences.push({
                 id: crypto.randomUUID(),
                 role: role || 'Role', organization: organization || 'Organization',
-                location, dates, description: description ? '• ' + description : ''
+                location, dates, description: description ? '• ' + description : '',
+                present: dates.endYear === 'Present'
             });
         }
     }

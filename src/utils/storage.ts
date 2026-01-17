@@ -24,6 +24,7 @@ export interface WorkExperience {
     location: string;
     dates: DateRange;
     description: string;
+    present?: boolean;
 }
 
 export interface Education {
@@ -35,6 +36,7 @@ export interface Education {
     dates: DateRange;
     gpa?: string;
     description: string;
+    present?: boolean;
 }
 
 export interface LeadershipExperience {
@@ -44,6 +46,7 @@ export interface LeadershipExperience {
     location: string;
     dates: DateRange;
     description: string;
+    present?: boolean;
 }
 
 export interface Award {

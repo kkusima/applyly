@@ -22,38 +22,38 @@ if (!(window as any).hasApplylyListener) {
  */
 function fillForm(resume: ResumeData): number {
     let filledCount = 0;
-
-    // Get all inputs from main document, iframes, and shadow DOMs
     const inputs = getAllInputs();
-
-    inputs.forEach((input: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) => {
+    inputs.forEach((input) => {
         if (!isElementVisible(input)) return;
-
+        // Scroll to the input before filling to ensure visibility
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
         const info = getFieldLabelInfo(input);
-        const value = findMatchingValue(info, resume);
-
-        if (value) {
-            if (input.tagName === 'SELECT') {
-                selectOption(input as HTMLSelectElement, value);
-            } else {
-                input.value = value;
+        // Detect present checkbox (e.g., "I currently work here")
+        if (input instanceof HTMLInputElement && input.type === 'checkbox') {
+            const lowerInfo = info.toLowerCase();
+            if (lowerInfo.includes('present') || lowerInfo.includes('currently') || lowerInfo.includes('i currently work here')) {
+                input.checked = true;
+                return; // skip further processing for this checkbox
             }
-
+        }
+        const value = findMatchingValue(info, resume);
+        if (value) {
+            if (input instanceof HTMLSelectElement) {
+                selectOption(input, value);
+            } else if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
+                (input as HTMLInputElement | HTMLTextAreaElement).value = value;
+            }
             // Trigger events to notify page logic (critical for React/Vue sites)
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
             input.dispatchEvent(new Event('blur', { bubbles: true }));
-
-            // Visual feedback
             highlightField(input);
             filledCount++;
         }
     });
-
     if (filledCount > 0) {
         showOverlay(filledCount);
     }
-
     return filledCount;
 }
 
@@ -104,6 +104,7 @@ function getFieldLabelInfo(input: HTMLElement): string {
  * Smart matching logic using keyword priorities
  */
 function findMatchingValue(fieldInfo: string, resume: ResumeData): string | null {
+    const info = fieldInfo.toLowerCase();
     const p = resume.personalInfo;
 
     // Personal Info Mapping
@@ -118,45 +119,77 @@ function findMatchingValue(fieldInfo: string, resume: ResumeData): string | null
         [['address', 'street', 'location'], p.address],
         [['city'], p.address.split(',')[0] || ''],
     ];
-
     for (const [keywords, value] of personalMap) {
-        if (keywords.some(k => fieldInfo.includes(k))) return value;
+        if (keywords.some(k => info.includes(k))) return value;
     }
 
-    // Work Experience (Most Recent)
+    // Work Experience (iterate all entries)
     if (resume.workExperience.length > 0) {
-        const recentWork = resume.workExperience[0];
-        const workMap: [string[], string][] = [
-            [['employer', 'company', 'organization'], recentWork.company],
-            [['job title', 'position', 'role'], recentWork.title],
-            [['responsibilities', 'work description'], recentWork.description],
-        ];
-        for (const [keywords, value] of workMap) {
-            if (keywords.some(k => fieldInfo.includes(k))) return value;
+        for (const work of resume.workExperience) {
+            const workMap: [string[], string][] = [
+                [['employer', 'company', 'organization'], work.company],
+                [['job title', 'position', 'role'], work.title],
+                [['responsibilities', 'work description', 'description', 'role description'], work.description],
+                [['location'], work.location],
+                [['start month'], work.dates.startMonth],
+                [['start year'], work.dates.startYear],
+                [['end month'], work.present ? '' : work.dates.endMonth],
+                [['end year'], work.present ? 'Present' : work.dates.endYear],
+            ];
+            for (const [keywords, value] of workMap) {
+                if (keywords.some(k => info.includes(k))) return value;
+            }
         }
     }
 
-    // Education (Most Recent)
+    // Education (iterate all entries)
     if (resume.education.length > 0) {
-        const recentEdu = resume.education[0];
-        const eduMap: [string[], string][] = [
-            [['school', 'university', 'college', 'institution'], recentEdu.school],
-            [['degree', 'qualification'], recentEdu.degree],
-            [['field of study', 'major', 'program'], recentEdu.field],
-            [['gpa', 'grade', 'average'], recentEdu.gpa || ''],
-        ];
-        for (const [keywords, value] of eduMap) {
-            if (keywords.some(k => fieldInfo.includes(k))) return value;
+        for (const edu of resume.education) {
+            const eduMap: [string[], string][] = [
+                [['school', 'university', 'college', 'institution'], edu.school],
+                [['degree', 'qualification'], edu.degree],
+                [['field of study', 'major', 'program'], edu.field],
+                [['gpa', 'grade', 'average'], edu.gpa || ''],
+                [['description', 'role description'], edu.description || ''],
+                [['location'], edu.location],
+                [['start month'], edu.dates.startMonth],
+                [['start year'], edu.dates.startYear],
+                [['end month'], edu.present ? '' : edu.dates.endMonth],
+                [['end year'], edu.present ? 'Present' : edu.dates.endYear],
+            ];
+            for (const [keywords, value] of eduMap) {
+                if (keywords.some(k => info.includes(k))) return value;
+            }
+        }
+    }
+
+    // Leadership (iterate all entries)
+    if (resume.leadershipExperience.length > 0) {
+        for (const lead of resume.leadershipExperience) {
+            const leadMap: [string[], string][] = [
+                [['organization', 'community', 'volunteer'], lead.organization],
+                [['role', 'title', 'position'], lead.role],
+                [['description', 'responsibilities'], lead.description],
+                [['location'], lead.location],
+                [['start month'], lead.dates.startMonth],
+                [['start year'], lead.dates.startYear],
+                [['end month'], lead.present ? '' : lead.dates.endMonth],
+                [['end year'], lead.present ? 'Present' : lead.dates.endYear],
+            ];
+            for (const [keywords, value] of leadMap) {
+                if (keywords.some(k => info.includes(k))) return value;
+            }
         }
     }
 
     // Skills
-    if (fieldInfo.includes('skill') || fieldInfo.includes('competencies')) {
+    if (info.includes('skill') || info.includes('competencies')) {
         return resume.skills.join(', ');
     }
 
     return null;
 }
+
 
 function selectOption(select: HTMLSelectElement, value: string) {
     const val = value.toLowerCase();

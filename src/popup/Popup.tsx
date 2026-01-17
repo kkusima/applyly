@@ -157,8 +157,8 @@ export const Popup: React.FC = () => {
                                         <CopyItem label="Start Year" value={w.dates.startYear} onCopy={copyToClipboard} copiedField={copiedField} id={`w-${i}-sy`} />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        <CopyItem label="End Month" value={w.dates.endMonth} onCopy={copyToClipboard} copiedField={copiedField} id={`w-${i}-em`} />
-                                        <CopyItem label="End Year" value={w.dates.endYear || 'Present'} onCopy={copyToClipboard} copiedField={copiedField} id={`w-${i}-ey`} />
+                                        {!w.present && <CopyItem label="End Month" value={w.dates.endMonth} onCopy={copyToClipboard} copiedField={copiedField} id={`w-${i}-em`} />}
+                                        <CopyItem label="End Year" value={w.present ? 'Present' : w.dates.endYear} onCopy={copyToClipboard} copiedField={copiedField} id={`w-${i}-ey`} />
                                     </div>
                                     <CopyItem label="Description" value={w.description} onCopy={copyToClipboard} copiedField={copiedField} id={`w-${i}-de`} isLong />
                                 </CollapsibleItem>
@@ -186,8 +186,8 @@ export const Popup: React.FC = () => {
                                         <CopyItem label="Start Year" value={e.dates.startYear} onCopy={copyToClipboard} copiedField={copiedField} id={`e-${i}-sy`} />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        <CopyItem label="End Month" value={e.dates.endMonth} onCopy={copyToClipboard} copiedField={copiedField} id={`e-${i}-em`} />
-                                        <CopyItem label="End Year" value={e.dates.endYear || 'Present'} onCopy={copyToClipboard} copiedField={copiedField} id={`e-${i}-ey`} />
+                                        {!e.present && <CopyItem label="End Month" value={e.dates.endMonth} onCopy={copyToClipboard} copiedField={copiedField} id={`e-${i}-em`} />}
+                                        <CopyItem label="End Year" value={e.present ? 'Present' : e.dates.endYear} onCopy={copyToClipboard} copiedField={copiedField} id={`e-${i}-ey`} />
                                     </div>
                                     <CopyItem label="Description" value={e.description} onCopy={copyToClipboard} copiedField={copiedField} id={`e-${i}-de`} isLong />
                                 </CollapsibleItem>
@@ -213,8 +213,8 @@ export const Popup: React.FC = () => {
                                         <CopyItem label="Start Year" value={l.dates.startYear} onCopy={copyToClipboard} copiedField={copiedField} id={`l-${i}-sy`} />
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
-                                        <CopyItem label="End Month" value={l.dates.endMonth} onCopy={copyToClipboard} copiedField={copiedField} id={`l-${i}-em`} />
-                                        <CopyItem label="End Year" value={l.dates.endYear || 'Present'} onCopy={copyToClipboard} copiedField={copiedField} id={`l-${i}-ey`} />
+                                        {!l.present && <CopyItem label="End Month" value={l.dates.endMonth} onCopy={copyToClipboard} copiedField={copiedField} id={`l-${i}-em`} />}
+                                        <CopyItem label="End Year" value={l.present ? 'Present' : l.dates.endYear} onCopy={copyToClipboard} copiedField={copiedField} id={`l-${i}-ey`} />
                                     </div>
                                     <CopyItem label="Description" value={l.description} onCopy={copyToClipboard} copiedField={copiedField} id={`l-${i}-de`} isLong />
                                 </CollapsibleItem>
