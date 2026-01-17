@@ -25,7 +25,7 @@ import {
     Trash2, Copy, Check, Upload, Briefcase, User, FileText, MapPin,
     GraduationCap, Sparkles, Mail, Phone, Linkedin, Globe, PenSquare,
     ChevronDown, ChevronRight, Award as AwardIcon, BookOpen, DollarSign,
-    Presentation, Users, Edit3, X, Plus, Github, Lightbulb, Loader
+    Presentation, Users, Edit3, X, Plus, Github, Lightbulb, Loader, Loader2, Save
 } from 'lucide-react';
 
 // ============================================================
@@ -39,6 +39,7 @@ export const Options: React.FC = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [copyStatus, setCopyStatus] = useState<Record<string, boolean>>({});
     const [hasChanges, setHasChanges] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     const [editingMeta, setEditingMeta] = useState(false);
     const [selectMode, setSelectMode] = useState(false);
@@ -237,6 +238,21 @@ export const Options: React.FC = () => {
         if (!activeProfile) return;
         setActiveProfile({ ...activeProfile, ...updates });
         setHasChanges(true);
+    };
+
+    const saveChanges = async () => {
+        if (!activeProfile) return;
+        setIsSaving(true);
+        try {
+            const updatedProfiles = profiles.map(p => p.id === activeProfile.id ? activeProfile : p);
+            await storage.saveProfiles(updatedProfiles);
+            setProfiles(updatedProfiles);
+            setHasChanges(false);
+        } catch (err) {
+            console.error('Failed to save changes:', err);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const updateResume = (updates: Partial<ResumeData>) => {
@@ -984,10 +1000,13 @@ export const Options: React.FC = () => {
                             <div className="floating-save-bar">
                                 <span className="floating-save-text">You have unsaved changes</span>
                                 <div className="floating-save-actions">
-                                    <button onClick={() => setHasChanges(false)} className="discard-btn">
+                                    <button onClick={() => setHasChanges(false)} className="discard-btn" disabled={isSaving}>
                                         <X size={14} /> Discard
                                     </button>
-
+                                    <button onClick={saveChanges} className="btn-primary" disabled={isSaving}>
+                                        {isSaving ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+                                        {isSaving ? 'Saving...' : 'Save Changes'}
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -1001,15 +1020,15 @@ export const Options: React.FC = () => {
                         onClick={onZoneClick}
                         style={{ maxWidth: 500, margin: '60px auto' }}
                     >
-                        <input ref={fileInputRef} type="file" hidden accept=".pdf,.docx" onChange={(e) => e.target.files?.[0] && handleProcessFile(e.target.files[0])} />
+                        <input ref={fileInputRef} type="file" hidden accept=".pdf" onChange={(e) => e.target.files?.[0] && handleProcessFile(e.target.files[0])} />
                         <div style={{ width: 64, height: 64, background: 'white', borderRadius: 16, boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                             <Upload size={28} color="var(--accent)" />
                         </div>
                         <h2 style={{ fontSize: 18, marginBottom: 8 }}>Upload Your Resume</h2>
                         <p style={{ color: 'var(--text-secondary)', maxWidth: 280, margin: '0 auto 20px' }}>
-                            Drag & drop a PDF or DOCX, or click anywhere to browse
+                            Drag & drop a PDF, or click anywhere to browse
                         </p>
-                        <span className="badge">PDF or DOCX</span>
+                        <span className="badge">PDF ONLY</span>
                     </div>
                 )}
 
@@ -1447,7 +1466,8 @@ const DateFields: React.FC<{
     cs: Record<string, boolean>;
     present?: boolean;
     onPresentChange?: (p: boolean) => void;
-}> = ({ dates, onChange, prefix, onCopy, cs, present, onPresentChange }) => (
+    presentLabel?: string;
+}> = ({ dates, onChange, prefix, onCopy, cs, present, onPresentChange, presentLabel }) => (
     <div className="flex flex-col gap-sm">
         <div className="grid-4">
             {(['startMonth', 'startYear', 'endMonth', 'endYear'] as const).map(k => {
@@ -1498,7 +1518,9 @@ const DateFields: React.FC<{
                     onChange={e => onPresentChange(e.target.checked)}
                     style={{ width: 'auto' }}
                 />
-                <label htmlFor={`${prefix}-present`} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>I currently work/study here</label>
+                <label htmlFor={`${prefix}-present`} style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    I currently {presentLabel || 'work/study'} here
+                </label>
             </div>
         )}
     </div>
@@ -1575,6 +1597,7 @@ const WorkSection: React.FC<SectionProps<WorkExperience>> = ({ items, onChange, 
                             onCopy={onCopy}
                             cs={cs}
                             present={item.present}
+                            presentLabel="work"
                             onPresentChange={p => {
                                 const newDates = { ...item.dates };
                                 if (p) {
@@ -1620,6 +1643,7 @@ const EducationSection: React.FC<SectionProps<Education>> = ({ items, onChange, 
                             onCopy={onCopy}
                             cs={cs}
                             present={item.present}
+                            presentLabel="study"
                             onPresentChange={p => {
                                 const newDates = { ...item.dates };
                                 if (p) {
@@ -1663,6 +1687,7 @@ const LeadershipSection: React.FC<SectionProps<LeadershipExperience>> = ({ items
                             onCopy={onCopy}
                             cs={cs}
                             present={item.present}
+                            presentLabel="lead"
                             onPresentChange={p => {
                                 const newDates = { ...item.dates };
                                 if (p) {

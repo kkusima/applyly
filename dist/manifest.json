@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Applyly™",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "AI-powered resume autofill and work experience manager.",
     "permissions": [
         "storage",
