@@ -4,7 +4,7 @@
 
 # Applyly™
 
-**[Website](https://kkusima.github.io/applyly/) | [GitHub](https://github.com/kkusima/applyly) | [Chrome Web Store](https://chromewebstore.google.com/detail/applyly/jfhblglahmaichgdjaehlgdgocibbmnb)**
+**[Website](https://kkusima.github.io/applyly/) | [Chrome Web Store](https://chromewebstore.google.com/detail/applyly/jfhblglahmaichgdjaehlgdgocibbmnb)**
 
 Applyly securely stores your resume data locally and helps you ensure every application is filled with your highest quality, curated information. Eliminates repetitive errors and inconsistencies across portals (LinkedIn, Greenhouse, Lever).
 
